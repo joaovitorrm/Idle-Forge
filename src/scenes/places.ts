@@ -1,9 +1,9 @@
 import forgeBackground from "../assets/forge.png";
 import questsBackground from "../assets/quest_board.png";
 import caveBackground from "../assets/caverna.png";
-import Furnace from "../objects/furnace.js";
+import Furnace from "../entities/Furnace.js";
 import Rect from "../util/rect.js";
-import forgesData from "./forges.json" with { type: "json" };
+import forgesData from "../data/forges.json" with { type: "json" };
 
 
 abstract class GenericPlace {

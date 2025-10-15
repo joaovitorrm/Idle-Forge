@@ -16,8 +16,8 @@ body {
 }
 
 canvas {
-    width: 600px;
-    height: 400px;
+    width: 800px;
+    height: 500px;
     background-color: hsl(0, 0%, 3%);
     image-rendering: pixelated;
 }

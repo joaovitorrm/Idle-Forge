@@ -1,27 +1,30 @@
-import spritePath from "../assets/ore.png";
+import { AssetManager } from "../core/AssetManager.js";
 import type Rect from "../util/rect.js";
-import { drawHitBox } from "../util/utils.js";
+import { GenericObject } from "./GenericObject.js";
 
-
-const furnaceSpriteClip : [number, number, number, number] = [0, 13*32, 32*2, 32*3];
 const furnaceSpriteClipAnimation : [number, number, number, number][] = [[32*2, 13*32, 32*2, 32*3], [32*4, 13*32, 32*2, 32*3], [32*6, 13*32, 32*2, 32*3]];
 
-export default class Furnace {
+export default class Furnace extends GenericObject {
    
-    rect: Rect;
-    sprite: HTMLImageElement;
-    spriteClip : [number, number, number, number];
     isActive : boolean = false;
     animationStep : number = 0;
 
-    constructor(rect : Rect) {
-        this.rect = rect;
-        this.sprite = new Image();
-        this.sprite.src = spritePath;
-        this.spriteClip = furnaceSpriteClip;
+    constructor(rect : Rect) {        
+
+        const assetManager = AssetManager.getInstance();
+
+        const img = assetManager.getObjectImage("furnace");
+
+        const sprite = img?.img;
+        const clip = img?.clip;
+
+        super(rect, sprite, clip!);
+
+        console.log(sprite, clip);
     }
 
     draw(ctx : CanvasRenderingContext2D) {
+        if (!this.sprite) return;
         ctx.drawImage(this.sprite, ...this.spriteClip, this.rect.x, this.rect.y, this.rect.width, this.rect.height);
     }
 
