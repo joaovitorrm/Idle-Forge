@@ -16,8 +16,13 @@ body {
 }
 
 canvas {
-    width: 600px;
-    height: 400px;
+    width: 800px;
+    height: 500px;
     background-color: hsl(0, 0%, 3%);
     image-rendering: pixelated;
+}
+
+@font-face {
+    font-family: "monospace_pixel";
+    src: url("../src/assets/fonts/monogram.ttf");
 }
