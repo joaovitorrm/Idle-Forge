@@ -12,7 +12,7 @@ export abstract class Item {
     toJSON() {
         return {
             name: this.name,
-            spriteKey: this.getSpriteKey(),
+            spriteKey: this.spriteKey,
             spriteClip: this.spriteClip,
         };
     }
@@ -34,8 +34,6 @@ export abstract class Item {
         return instance;
     }
 
-    protected abstract getSpriteKey(): keyof typeof objectsAssets;
-
 }
 
 export class StarterPickaxe extends Item {
@@ -47,14 +45,12 @@ export class StarterPickaxe extends Item {
         const spriteClip = assetManager.getObjectImage("stonePickaxe")!.clip;
 
         super("Stone Pickaxe", sprite, spriteClip);
+
+        this.spriteKey = "stonePickaxe";
     }
 
     public getDamage() : number {
         return this.damage;
-    }
-
-    protected getSpriteKey(): keyof typeof objectsAssets {
-        return "stonePickaxe";
     }
 }
 
@@ -65,10 +61,8 @@ export class CopperOre extends Item {
         const spriteClip = assetManager.getObjectImage("copperOre")!.clip;
 
         super("Copper Ore", sprite, spriteClip);
-    }
 
-    protected getSpriteKey(): keyof typeof objectsAssets {
-        return "copperOre";
+        this.spriteKey = "copperOre";
     }
 }
 
@@ -79,10 +73,8 @@ export class GoldOre extends Item {
         const spriteClip = assetManager.getObjectImage("goldOre")!.clip;
 
         super("Gold Ore", sprite, spriteClip);
-    }
 
-    protected getSpriteKey(): keyof typeof objectsAssets {
-        return "goldOre";
+        this.spriteKey = "goldOre";
     }
 }
 
@@ -93,9 +85,7 @@ export class CoalOre extends Item {
         const spriteClip = assetManager.getObjectImage("coalOre")!.clip;
 
         super("Coal Ore", sprite, spriteClip);
-    }
 
-    protected getSpriteKey(): keyof typeof objectsAssets {
-        return "coalOre";
+        this.spriteKey = "coalOre";
     }
 }

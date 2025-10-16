@@ -1,11 +1,13 @@
-import type { InputManager } from "./InputManager.js";
-import CaveScene from "../scenes/CaveScene.js";
-import ForgeScene from "../scenes/ForgeScene.js";
-import MenuScene from "../scenes/MenuScene.js";
 import type Player from "../entities/Player.js";
+import type { InputManager } from "./InputManager.js";
 import type { GenericScene } from "../scenes/GenericScene.js";
 
-type SceneKey = "cave" | "forge";
+import CaveScene from "../scenes/CaveScene.js";
+import ForgeScene from "../scenes/ForgeScene.js";
+import QuestsScene from "../scenes/QuestsScene.js";
+import { SmeltScene } from "../scenes/SmeltScene.js";
+
+type SceneKey = "cave" | "forge" | "quests" | "smelt";
 
 type SceneConstructor = new (input : InputManager, player : Player) => GenericScene;
 
@@ -14,7 +16,9 @@ export class SceneManager {
     private loadedScenes : Map<SceneKey, GenericScene> = new Map();
     private sceneClasses : Record<SceneKey, SceneConstructor> = {
         "cave" : CaveScene,
-        "forge" : ForgeScene
+        "forge" : ForgeScene,
+        "quests" : QuestsScene,
+        "smelt" : SmeltScene
     }
 
     public currentScene : SceneKey = "cave";

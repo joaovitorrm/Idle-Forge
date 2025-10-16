@@ -20,6 +20,7 @@ export class Game {
         
         this.uiManager.addHUDColorButton("bottom", "cave", "purple", new Rect(10, 10, 30, 30), () => this.sceneManager.setScene("cave"));
         this.uiManager.addHUDColorButton("bottom", "forge", "black", new Rect(50, 10, 30, 30), () => this.sceneManager.setScene("forge"));
+        this.uiManager.addHUDColorButton("bottom", "quests", "green", new Rect(90, 10, 30, 30), () => this.sceneManager.setScene("quests"));
     }
 
     async start() {

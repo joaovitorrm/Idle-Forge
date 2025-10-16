@@ -16,8 +16,7 @@ export default class Player {
             this.gear = playerData.gear;
         } else {
             this.gear = { "pickaxe": new StarterPickaxe() };
-        }        
-        
+        }
     }
 
     getMoney() : number {

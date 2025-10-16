@@ -146,7 +146,7 @@
     toJSON() {
       return {
         name: this.name,
-        spriteKey: this.getSpriteKey(),
+        spriteKey: this.spriteKey,
         spriteClip: this.spriteClip
       };
     }
@@ -170,12 +170,10 @@
       const sprite = assetManager.getObjectImage("stonePickaxe").img;
       const spriteClip = assetManager.getObjectImage("stonePickaxe").clip;
       super("Stone Pickaxe", sprite, spriteClip);
+      this.spriteKey = "stonePickaxe";
     }
     getDamage() {
       return this.damage;
-    }
-    getSpriteKey() {
-      return "stonePickaxe";
     }
   };
   var CopperOre = class extends Item {
@@ -184,9 +182,7 @@
       const sprite = assetManager.getObjectImage("copperOre").img;
       const spriteClip = assetManager.getObjectImage("copperOre").clip;
       super("Copper Ore", sprite, spriteClip);
-    }
-    getSpriteKey() {
-      return "copperOre";
+      this.spriteKey = "copperOre";
     }
   };
   var GoldOre = class extends Item {
@@ -195,9 +191,7 @@
       const sprite = assetManager.getObjectImage("goldOre").img;
       const spriteClip = assetManager.getObjectImage("goldOre").clip;
       super("Gold Ore", sprite, spriteClip);
-    }
-    getSpriteKey() {
-      return "goldOre";
+      this.spriteKey = "goldOre";
     }
   };
   var CoalOre = class extends Item {
@@ -206,9 +200,7 @@
       const sprite = assetManager.getObjectImage("coalOre").img;
       const spriteClip = assetManager.getObjectImage("coalOre").clip;
       super("Coal Ore", sprite, spriteClip);
-    }
-    getSpriteKey() {
-      return "coalOre";
+      this.spriteKey = "coalOre";
     }
   };
 
@@ -807,6 +799,42 @@
     }
   };
 
+  // src/scenes/QuestsScene.ts
+  var QuestsScene = class extends GenericScene {
+    constructor(input, player) {
+      const assetManager = AssetManager.getInstance();
+      const sprite = assetManager.getBackgroundImage("questsBackground");
+      super(input, player, sprite);
+      this.input = input;
+      this.player = player;
+    }
+    draw(ctx2) {
+      if (!this.sprite) return;
+      ctx2.drawImage(this.sprite, this.rect.x, this.rect.y, this.rect.width, this.rect.height);
+    }
+    update(dt) {
+    }
+    reEnter(enteredTime) {
+    }
+  };
+
+  // src/scenes/SmeltScene.ts
+  var SmeltScene = class extends GenericScene {
+    constructor(input, player) {
+      const sprite = AssetManager.getInstance().getBackgroundImage("forgeBackground");
+      super(input, player, sprite);
+      this.input = input;
+      this.player = player;
+    }
+    draw(ctx2) {
+      super.draw(ctx2);
+    }
+    update(dt) {
+    }
+    reEnter(enteredTime) {
+    }
+  };
+
   // src/core/SceneManager.ts
   var SceneManager = class {
     constructor(input, player) {
@@ -816,7 +844,9 @@
     loadedScenes = /* @__PURE__ */ new Map();
     sceneClasses = {
       "cave": CaveScene,
-      "forge": ForgeScene
+      "forge": ForgeScene,
+      "quests": QuestsScene,
+      "smelt": SmeltScene
     };
     currentScene = "cave";
     draw(ctx2) {
@@ -853,6 +883,7 @@
       this.sceneManager = new SceneManager(input, this.player);
       this.uiManager.addHUDColorButton("bottom", "cave", "purple", new Rect(10, 10, 30, 30), () => this.sceneManager.setScene("cave"));
       this.uiManager.addHUDColorButton("bottom", "forge", "black", new Rect(50, 10, 30, 30), () => this.sceneManager.setScene("forge"));
+      this.uiManager.addHUDColorButton("bottom", "quests", "green", new Rect(90, 10, 30, 30), () => this.sceneManager.setScene("quests"));
     }
     async start() {
       const assetManager = AssetManager.getInstance();
