@@ -2,28 +2,24 @@ import type { InputManager } from "./InputManager.js";
 import CaveScene from "../scenes/CaveScene.js";
 import ForgeScene from "../scenes/ForgeScene.js";
 import MenuScene from "../scenes/MenuScene.js";
+import type Player from "../entities/Player.js";
+import type { GenericScene } from "../scenes/GenericScene.js";
 
-interface Scene {
-    draw(ctx : CanvasRenderingContext2D) : void;
-    update(dt : number) : void;
-}
+type SceneKey = "cave" | "forge";
 
-type SceneKey = "menu" | "cave" | "forge";
-
-type SceneConstructor = new (input : InputManager) => Scene;
+type SceneConstructor = new (input : InputManager, player : Player) => GenericScene;
 
 export class SceneManager {
     
-    private loadedScenes : Map<SceneKey, Scene> = new Map<SceneKey, Scene>();
+    private loadedScenes : Map<SceneKey, GenericScene> = new Map();
     private sceneClasses : Record<SceneKey, SceneConstructor> = {
-        "menu" : MenuScene,
         "cave" : CaveScene,
         "forge" : ForgeScene
     }
 
     public currentScene : SceneKey = "cave";
 
-    constructor(protected input : InputManager) {}
+    constructor(protected input : InputManager, protected player : Player) {}
 
     draw(ctx: CanvasRenderingContext2D) {
         this.loadedScenes.get(this.currentScene)!.draw(ctx);
@@ -33,16 +29,20 @@ export class SceneManager {
     }
 
     setScene(scene : SceneKey) : void {
+        if (this.loadedScenes.has(this.currentScene)) this.loadedScenes.get(this.currentScene)!.exitedTime = Date.now();
+
         this.currentScene = scene;
         this.loadScene(scene);
     }
 
-    private loadScene(scene : SceneKey) : Scene {
+    private loadScene(scene : SceneKey) : GenericScene {
         if (this.loadedScenes.has(scene)) {
-            return this.loadedScenes.get(scene)!;
+            const newScene = this.loadedScenes.get(scene)!;
+            newScene.reEnter(Date.now());
+            return newScene;
         }
 
-        const newScene = new this.sceneClasses[scene](this.input);
+        const newScene = new this.sceneClasses[scene](this.input, this.player);
         this.loadedScenes.set(scene, newScene);
         return newScene;
     }

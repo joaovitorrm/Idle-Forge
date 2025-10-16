@@ -4,6 +4,7 @@ import Rect from "../util/rect.js";
 import type { InputManager } from "../core/InputManager.js";
 import { GameConfig } from "../config/gameConfig.js";
 import { HUDConfig } from "../config/hudConfig.js";
+import { GenericScene } from "./GenericScene.js";
 
 export default class MenuScene {
     private sprite : HTMLImageElement | undefined = undefined;

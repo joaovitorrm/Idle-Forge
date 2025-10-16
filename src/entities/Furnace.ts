@@ -19,8 +19,6 @@ export default class Furnace extends GenericObject {
         const clip = img?.clip;
 
         super(rect, sprite, clip!);
-
-        console.log(sprite, clip);
     }
 
     draw(ctx : CanvasRenderingContext2D) {

@@ -1,6 +1,7 @@
 import { GameConfig } from "../../config/gameConfig.js";
 import { HUDConfig } from "../../config/hudConfig.js";
 import type { InputManager } from "../../core/InputManager.js";
+import type Player from "../../entities/Player.js";
 
 import Rect from "../../util/rect.js";
 import { Button, ColorButton } from "../uiElements/Button.js";
@@ -10,7 +11,7 @@ export default class UILeft extends UIGeneric {
 
     protected isReduced : boolean = false;
 
-    constructor(protected input : InputManager) {
+    constructor(input : InputManager, player : Player) {
 
         const rect = new Rect(
             HUDConfig.left.xRatio * GameConfig.GAME_WIDTH, 
@@ -19,11 +20,11 @@ export default class UILeft extends UIGeneric {
             HUDConfig.left.heightRatio * GameConfig.GAME_HEIGHT
         );
 
-        super(rect);
+        super(rect, input, player);
 
         this.resize();
 
-        this.addColorButton("reduce", "white", new Rect(this.rect.width, 0, 40, 60), () => this.resize());
+        this.addColorButton("reduce", "white", new Rect(this.rect.width, 0, 30, 30), () => this.resize());
     }
 
     addColorButton(name: string, color: string, rect : Rect, handleClick : (args? : unknown) => void): void {

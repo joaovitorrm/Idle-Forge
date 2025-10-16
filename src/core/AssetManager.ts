@@ -1,8 +1,8 @@
-import { backgroundAssets, objectsAssets, type BackgroundAssets, type ObjectsAssets } from "../data/assets.js";
+import { backgroundAssets, objectsAssets } from "../data/assets.js";
 
 // Tipo genérico para map de assets
 
-type Assets = BackgroundAssets | ObjectsAssets
+type Assets = typeof backgroundAssets | typeof objectsAssets;
 
 export class AssetManager {
     private static instance: AssetManager;
@@ -31,27 +31,29 @@ export class AssetManager {
                 this.images.set(name, { img });
                 resolve(img);
             };
-            img.onerror = reject;
+            img.onerror = () => {
+                reject(new Error(`Failed to load image: ${src}`));
+            };
         });
     }
 
-    public getBackgroundImage(name: keyof BackgroundAssets): HTMLImageElement | undefined {
+    public getBackgroundImage(name: keyof typeof backgroundAssets): HTMLImageElement | undefined {
         return this.images.get(name)?.img;
     }
 
-    public getObjectImage(name: keyof ObjectsAssets): { img: HTMLImageElement; clip: [number, number, number, number] } | undefined {
+    public getObjectImage(name: keyof typeof objectsAssets): { img: HTMLImageElement; clip: [number, number, number, number] } | undefined {
         return this.images.get(name) as any;
     }
 
 
     async loadAll(): Promise<void> {
         // Backgrounds
-        for (const [name, src] of Object.entries(backgroundAssets) as [keyof BackgroundAssets, string][]) {
+        for (const [name, src] of Object.entries(backgroundAssets) as [keyof typeof backgroundAssets, string][]) {
             await this.loadImage(name, src);
         }
 
         // Objects
-        for (const [name, data] of Object.entries(objectsAssets) as [keyof ObjectsAssets, ObjectsAssets[keyof ObjectsAssets]][]) {
+        for (const [name, data] of Object.entries(objectsAssets) as [keyof typeof objectsAssets, { path: string; clip: [number, number, number, number] }][]) {
             await this.loadImage(name, data.path);
             this.images.get(name)!.clip = data.clip;
         }

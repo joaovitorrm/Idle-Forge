@@ -1,4 +1,5 @@
 import type { InputManager } from "../core/InputManager.js";
+import type Player from "../entities/Player.js";
 import type Rect from "../util/rect.js";
 import { uiHUD } from "./uiPanels/uiHUD.js";
 
@@ -9,8 +10,8 @@ export class UIManager {
     hud : uiHUD;
     isHUDActive : boolean = true;
 
-    constructor(private input : InputManager) {
-        this.hud = new uiHUD(input);
+    constructor(private input : InputManager, protected player : Player) {
+        this.hud = new uiHUD(input, player);
     }
 
     public setIsHUDActive(isHUDActive : boolean) {
@@ -27,6 +28,6 @@ export class UIManager {
     }
 
     public update(dt : number) {
-        this.hud.update(dt, this.input);
+        this.hud.update(dt);
     }
 }

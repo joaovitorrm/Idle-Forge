@@ -4,6 +4,7 @@ import UIBottom from "./uiBottom.js";
 import UILeft from "./uiLeft.js";
 import UIRight from "./uiRight.js";
 import UITop from "./uiTop.js";
+import type Player from "../../entities/Player.js";
 
 type HUDSection = "left" | "right" | "top" | "bottom";
 
@@ -11,12 +12,12 @@ export class uiHUD {
 
     public sections: Map<HUDSection, UIGeneric>;
 
-    constructor(input: InputManager) {
+    constructor(input: InputManager, protected player: Player) {
         this.sections = new Map<HUDSection, UIGeneric>([
-            ["left", new UILeft(input)],
-            ["right", new UIRight(input)],
-            ["top", new UITop(input)],
-            ["bottom", new UIBottom(input)],
+            ["left", new UILeft(input, player)],
+            ["right", new UIRight(input, player)],
+            ["top", new UITop(input, player)],
+            ["bottom", new UIBottom(input, player)],
         ]);
     }
 
@@ -26,9 +27,9 @@ export class uiHUD {
         }
     }
 
-    update(dt : number, input : InputManager) {
+    update(dt : number) {
         for (const section of this.sections.values()) {
-            section.update(dt, input);
+            section.update(dt);
         }
     }
 }
