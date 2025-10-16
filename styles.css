@@ -24,5 +24,5 @@ canvas {
 
 @font-face {
     font-family: "monospace_pixel";
-    src: url("../src/assets/fonts/monogram.ttf");
+    src: url("./monogram.ttf");
 }
