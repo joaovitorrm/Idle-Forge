@@ -602,7 +602,7 @@ var OreBoulder = class {
     ctx2.drawImage(this.sprite, ...this.spriteClip, this.rect.x, this.rect.y, this.rect.width, this.rect.height);
     ctx2.fillStyle = "white";
     ctx2.textAlign = "center";
-    ctx2.font = "24px monospace_pixel";
+    ctx2.font = "24px MonogramFont";
     ctx2.fillText(`${this.health.toString()}/${this.maxHealth.toString()}`, this.rect.x + this.rect.width / 2, this.rect.y - 20);
   }
   update(dt) {
@@ -713,7 +713,7 @@ var CaveScene = class extends GenericScene {
       if (spot.ore) continue;
       ctx2.fillStyle = "white";
       ctx2.textAlign = "center";
-      ctx2.font = "24px monospace_pixel";
+      ctx2.font = "24px MonogramFont";
       ctx2.fillText((this.oreRespawnTime - spot.spawnTime).toFixed(0).toString() + "s", spot.x + 64, spot.y + 64);
     }
   }
