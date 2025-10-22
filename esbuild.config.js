@@ -7,7 +7,13 @@ async function startBuild() {
     bundle: true,
     outdir: "dist",
     plugins: [globImport()],
-    loader: { ".png": "file" },
+    format: "esm",
+    loader: { 
+      ".png": "file",
+      ".ttf": "file"
+     },
+     assetNames: "assets/[name]-[hash]",
+     publicPath: "./",
   });
 
   // Inicia o watch

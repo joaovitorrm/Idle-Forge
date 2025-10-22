@@ -24,20 +24,14 @@ export default class UILeft extends UIGeneric {
 
         this.resize();
 
-        this.addColorButton("reduce", "white", new Rect(this.rect.width, 0, 30, 30), () => this.resize());
-    }
-
-    addColorButton(name: string, color: string, rect : Rect, handleClick : (args? : unknown) => void): void {
-        rect.x += this.rect.x;
-        rect.y += this.rect.y;
-        this.buttons.set(name, new ColorButton(color, rect, this.input, handleClick));
+        this.buttons.set("reduce", new ColorButton("white", this.rect, new Rect(0, 0, 30, 30), this.input, () => this.resize()));
     }
 
     resize() : void {
         if (!this.isReduced) {
             
             if (this.buttons.has("reduce"))
-                this.buttons.get("reduce")!.rect.x -= this.rect.width;            
+                this.buttons.get("reduce")!.dRect.x -= this.rect.width;            
             
             this.rect.width = 0;            
 
@@ -46,7 +40,7 @@ export default class UILeft extends UIGeneric {
             this.rect.width = GameConfig.GAME_WIDTH * HUDConfig.left.widthRatio;
 
             if (this.buttons.has("reduce"))
-                this.buttons.get("reduce")!.rect.x += this.rect.width;
+                this.buttons.get("reduce")!.dRect.x += this.rect.width;
 
             this.isReduced = false;
         }
@@ -55,7 +49,7 @@ export default class UILeft extends UIGeneric {
     draw(ctx: CanvasRenderingContext2D): void {
         if (!this.isShown) return;
 
-        ctx.fillStyle = "blue";
+        ctx.fillStyle = "yellow";
         ctx.fillRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
 
         for (const [_, button] of this.buttons) button.draw(ctx);

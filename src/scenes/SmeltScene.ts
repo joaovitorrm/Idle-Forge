@@ -3,7 +3,7 @@ import type { InputManager } from "../core/InputManager.js";
 import type Player from "../entities/Player.js";
 import { GenericScene } from "./GenericScene.js";
 
-export class SmeltScene extends GenericScene {
+export default class SmeltScene extends GenericScene {
     constructor(protected input : InputManager, protected player : Player) {
         const sprite = AssetManager.getInstance().getBackgroundImage("forgeBackground")!;
 
@@ -16,5 +16,7 @@ export class SmeltScene extends GenericScene {
 
     update(dt : number): void {}
 
-    reEnter(enteredTime : number): void {}
+    enter(): void {}
+
+    exit() : void {}
 }

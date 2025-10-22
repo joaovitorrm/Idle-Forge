@@ -22,4 +22,8 @@ export class EventBus {
         if (!list) return;
         for (const l of list) l(...args);
     }
+
+    static has(event: string) {
+        return this.events.has(event);
+    }
 }

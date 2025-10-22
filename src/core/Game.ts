@@ -30,12 +30,12 @@ export class Game {
 
         this.player.init();
 
-        this.sceneManager.setScene("cave");
+        this.sceneManager.setScene("forge");
     }
 
     update(dt: number) {
-        this.sceneManager.update(dt);
         this.uiManager.update(dt);
+        this.sceneManager.update(dt);
     }
 
     draw(ctx: CanvasRenderingContext2D) {

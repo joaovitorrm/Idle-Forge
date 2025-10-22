@@ -16,5 +16,7 @@ export abstract class GenericScene {
 
     abstract update(dt : number) : void
 
-    abstract reEnter(enteredTime : number) : void
+    abstract enter() : void
+
+    abstract exit() : void
 }

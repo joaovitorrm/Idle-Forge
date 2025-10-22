@@ -21,5 +21,7 @@ export default class QuestsScene extends GenericScene {
 
     }
 
-    reEnter(enteredTime : number) : void {}
+    enter() : void {}
+
+    exit() : void {}
 }

@@ -36,4 +36,6 @@ export class InputManager {
     }
 
     public isMouseOver(rect : Rect) : boolean {return rect.collide(new Rect(this.x, this.y, 1, 1))}
+
+    public getRect() : Rect {return new Rect(this.x, this.y, 1, 1)}
 }

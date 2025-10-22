@@ -11,12 +11,6 @@ export abstract class OreBoulder {
     constructor(public rect: Rect, protected sprite: HTMLImageElement | undefined, protected spriteClip: [number, number, number, number]) { }
     draw(ctx: CanvasRenderingContext2D): void {
         ctx.drawImage(this.sprite!, ...this.spriteClip, this.rect.x, this.rect.y, this.rect.width, this.rect.height);
-
-        ctx.fillStyle = "white";
-        ctx.textAlign = "center";
-        ctx.font = "24px monospace_pixel";
-
-        ctx.fillText(`${this.health.toString()}/${this.maxHealth.toString()}`, this.rect.x + this.rect.width / 2, this.rect.y - 20);
     }
 
     update(dt: number): void {}

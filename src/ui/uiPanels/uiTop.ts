@@ -19,12 +19,6 @@ export default class UITop extends UIGeneric {
         super(rect, input, player);
     }
 
-    addColorButton(name: string, color: string, rect: Rect, handleClick: (args?: unknown) => void): void {
-        rect.x += this.rect.x;
-        rect.y += this.rect.y;
-        this.buttons.set(name, new ColorButton(color, rect, this.input, handleClick));
-    }
-
     draw(ctx: CanvasRenderingContext2D): void {
         if (!this.isShown) return;
 

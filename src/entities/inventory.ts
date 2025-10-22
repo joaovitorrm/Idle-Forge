@@ -1,3 +1,4 @@
+import { EventBus } from "../core/EventBus.js";
 import { Item } from "./Item.js";
 
 export default class Inventory {
@@ -16,6 +17,11 @@ export default class Inventory {
 
     getItems() : typeof this.inventory {
         return this.inventory;
+    }
+
+    getItemAmount(item : Item) : number {
+        const existing = this.inventory.get(item.name);
+        return existing ? existing.amount : 0;
     }
 
     private save(): void {
@@ -49,6 +55,11 @@ export default class Inventory {
 
     private restoreItem(data: string): Item {
         return Item.fromJSON(data);
+    }
+
+    public removeItem(item : Item, amount : number) : void {
+        this.inventory.set(item.name, { item, amount: this.getItemAmount(item) - amount });
+        this.save();
     }
 
 }
