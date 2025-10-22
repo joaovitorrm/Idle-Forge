@@ -4,52 +4,28 @@ var GameConfig = class {
   static GAME_HEIGHT = 500;
 };
 
-// src/util/rect.ts
-var Rect = class _Rect {
-  x;
-  y;
-  width;
-  height;
-  left;
-  right;
-  top;
-  bottom;
-  constructor(x, y, width, height) {
-    this.x = x;
-    this.y = y;
-    this.width = width;
-    this.height = height;
-    this.left = x;
-    this.right = x + width;
-    this.top = y;
-    this.bottom = y + height;
+// src/core/EventBus.ts
+var EventBus = class {
+  static events = /* @__PURE__ */ new Map();
+  constructor() {
   }
-  contains(x, y) {
-    return x >= this.x && x < this.x + this.width && y >= this.y && y < this.y + this.height;
+  static on(event, listener) {
+    if (!this.events.has(event)) this.events.set(event, []);
+    this.events.get(event).push(listener);
   }
-  collide(rect) {
-    return this.contains(rect.x, rect.y) || this.contains(rect.x + rect.width, rect.y) || this.contains(rect.x, rect.y + rect.height) || this.contains(rect.x + rect.width, rect.y + rect.height);
+  static off(event, listener) {
+    const list = this.events.get(event);
+    if (!list) return;
+    const index = list.indexOf(listener);
+    if (index !== -1) list.splice(index, 1);
   }
-  copy() {
-    return new _Rect(this.x, this.y, this.width, this.height);
+  static emit(event, ...args) {
+    const list = this.events.get(event);
+    if (!list) return;
+    for (const l of list) l(...args);
   }
-  translate(x, y) {
-    return new _Rect(this.x + x, this.y + y, this.width, this.height);
-  }
-  resize(width, height) {
-    return new _Rect(this.x, this.y, width, height);
-  }
-  scale(scale) {
-    return new _Rect(this.x, this.y, this.width * scale, this.height * scale);
-  }
-  center() {
-    return new _Rect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
-  }
-  getCenterX() {
-    return this.x + this.width / 2;
-  }
-  getCenterY() {
-    return this.y + this.height / 2;
+  static has(event) {
+    return this.events.has(event);
   }
 };
 
@@ -62,17 +38,24 @@ var forge_default = "./assets/forge-3DW6GMWE.png";
 // src/assets/images/scenes/quest_board.png
 var quest_board_default = "./assets/quest_board-XAJFGID5.png";
 
+// src/assets/images/scenes/furnace.png
+var furnace_default = "./assets/furnace-BZOP7SRK.png";
+
 // src/assets/images/items/ore.png
 var ore_default = "./assets/ore-42GGJZ2H.png";
 
 // src/assets/images/items/tools.png
 var tools_default = "./assets/tools-3GRJJX3W.png";
 
+// src/assets/images/items/plates.png
+var plates_default = "./assets/plates-IRE2YA32.png";
+
 // src/data/assets.ts
 var backgroundAssets = {
   caveBackground: caverna_default,
   forgeBackground: forge_default,
-  questsBackground: quest_board_default
+  questsBackground: quest_board_default,
+  furnaceBackground: furnace_default
 };
 var objectsAssets = {
   coalOre: { path: ore_default, clip: [0, 32 * 10, 32, 32] },
@@ -80,10 +63,18 @@ var objectsAssets = {
   goldOre: { path: ore_default, clip: [32 * 3, 32 * 10, 32, 32] },
   ironOre: { path: ore_default, clip: [0, 0, 32, 32] },
   furnace: { path: ore_default, clip: [0, 13 * 32, 32 * 2, 32 * 3] },
+  furnaceAnimation1: { path: ore_default, clip: [32 * 2, 13 * 32, 32 * 2, 32 * 3] },
+  furnaceAnimation2: { path: ore_default, clip: [32 * 4, 13 * 32, 32 * 2, 32 * 3] },
+  furnaceAnimation3: { path: ore_default, clip: [32 * 6, 13 * 32, 32 * 2, 32 * 3] },
   coalOreBoulder: { path: ore_default, clip: [0, 0, 32, 32] },
   copperOreBoulder: { path: ore_default, clip: [32, 0, 32, 32] },
   goldOreBoulder: { path: ore_default, clip: [32 * 3, 0, 32, 32] },
-  stonePickaxe: { path: tools_default, clip: [16 * 5, 0, 16, 16] }
+  stonePickaxe: { path: tools_default, clip: [16 * 5, 0, 16, 16] },
+  pPickaxeHead: { path: plates_default, clip: [0, 32, 32, 32] },
+  pHandle: { path: plates_default, clip: [0, 0, 32, 32] },
+  pUnion: { path: plates_default, clip: [32, 0, 32, 32] },
+  pSwordHandler: { path: plates_default, clip: [32 * 2, 0, 32, 32] },
+  pSwordHead: { path: plates_default, clip: [0, 32 * 2, 32, 32] }
 };
 
 // src/core/AssetManager.ts
@@ -161,43 +152,59 @@ var Item = class {
     return instance;
   }
 };
-var StarterPickaxe = class extends Item {
-  damage = 1;
+var Ore = class extends Item {
+  constructor(name, sprite, spriteClip, tier, outputType, meltTime) {
+    super(name, sprite, spriteClip);
+    this.tier = tier;
+    this.outputType = outputType;
+    this.meltTime = meltTime;
+  }
+};
+var Fuel = class extends Item {
+  constructor(name, sprite, spriteClip, tier, burnTime) {
+    super(name, sprite, spriteClip);
+    this.tier = tier;
+    this.burnTime = burnTime;
+  }
+};
+var Pickaxe = class extends Item {
+  constructor(name, sprite, spriteClip, damage) {
+    super(name, sprite, spriteClip);
+    this.damage = damage;
+  }
+};
+var StarterPickaxe = class extends Pickaxe {
   constructor() {
     const assetManager = AssetManager.getInstance();
-    const sprite = assetManager.getObjectImage("stonePickaxe").img;
-    const spriteClip = assetManager.getObjectImage("stonePickaxe").clip;
-    super("Stone Pickaxe", sprite, spriteClip);
+    const { img, clip } = assetManager.getObjectImage("stonePickaxe");
+    super("Stone Pickaxe", img, clip, 1);
     this.spriteKey = "stonePickaxe";
   }
   getDamage() {
     return this.damage;
   }
 };
-var CopperOre = class extends Item {
+var CopperOre = class extends Ore {
   constructor() {
     const assetManager = AssetManager.getInstance();
-    const sprite = assetManager.getObjectImage("copperOre").img;
-    const spriteClip = assetManager.getObjectImage("copperOre").clip;
-    super("Copper Ore", sprite, spriteClip);
+    const { img, clip } = assetManager.getObjectImage("copperOre");
+    super("Copper Ore", img, clip, 1, "copper", 5);
     this.spriteKey = "copperOre";
   }
 };
-var GoldOre = class extends Item {
+var GoldOre = class extends Ore {
   constructor() {
     const assetManager = AssetManager.getInstance();
-    const sprite = assetManager.getObjectImage("goldOre").img;
-    const spriteClip = assetManager.getObjectImage("goldOre").clip;
-    super("Gold Ore", sprite, spriteClip);
+    const { img, clip } = assetManager.getObjectImage("goldOre");
+    super("Gold Ore", img, clip, 2, "gold", 20);
     this.spriteKey = "goldOre";
   }
 };
-var CoalOre = class extends Item {
+var CoalOre = class extends Fuel {
   constructor() {
     const assetManager = AssetManager.getInstance();
-    const sprite = assetManager.getObjectImage("coalOre").img;
-    const spriteClip = assetManager.getObjectImage("coalOre").clip;
-    super("Coal Ore", sprite, spriteClip);
+    const { img, clip } = assetManager.getObjectImage("coalOre");
+    super("Coal Ore", img, clip, 1, 10);
     this.spriteKey = "coalOre";
   }
 };
@@ -215,6 +222,10 @@ var Inventory = class {
   }
   getItems() {
     return this.inventory;
+  }
+  getItemAmount(item) {
+    const existing = this.inventory.get(item.name);
+    return existing ? existing.amount : 0;
   }
   save() {
     const plainInventory = Array.from(this.inventory.entries()).map(([name, { item, amount }]) => ({
@@ -243,13 +254,21 @@ var Inventory = class {
   restoreItem(data) {
     return Item.fromJSON(data);
   }
+  removeItem(item, amount) {
+    this.inventory.set(item.name, { item, amount: this.getItemAmount(item) - amount });
+    this.save();
+  }
 };
 
 // src/entities/Player.ts
 var Player = class {
   money = 0;
   inventory = new Inventory();
-  gear = {};
+  gear = {
+    "pickaxe": null
+  };
+  holdingItem = null;
+  //public unlockedPlates : Map<string, Plate> = new Map();
   init() {
     this.inventory.init();
     if (localStorage.getItem("playerData")) {
@@ -259,6 +278,17 @@ var Player = class {
     } else {
       this.gear = { "pickaxe": new StarterPickaxe() };
     }
+    this.initEvents();
+  }
+  initEvents() {
+    EventBus.on("hold_item", (item, amount) => {
+      if (this.getItemAmount(item) < (this.holdingItem ? this.holdingItem.amount : 0) + amount) return;
+      if (this.holdingItem !== null && this.holdingItem.item.name === item.name) {
+        this.holdingItem.amount += amount;
+        return;
+      }
+      this.holdingItem = { item, amount };
+    });
   }
   getMoney() {
     return this.money;
@@ -272,8 +302,123 @@ var Player = class {
   addItem(item, amount) {
     this.inventory.addItem(item, amount);
   }
+  removeItem(item, amount) {
+    this.inventory.removeItem(item, amount);
+  }
   getPickaxeDamage() {
-    return 0;
+    return this.gear.pickaxe.damage;
+  }
+  getItemAmount(item) {
+    return this.inventory.getItemAmount(item);
+  }
+};
+
+// src/ui/uiElements/Button.ts
+var Button = class {
+  constructor(sRect, dRect, input, onClick = null) {
+    this.sRect = sRect;
+    this.dRect = dRect;
+    this.input = input;
+    this.dRect.x += this.sRect.x;
+    this.dRect.y += this.sRect.y;
+    if (onClick !== null) this.onClick = onClick;
+  }
+  onClick = null;
+  update(dt) {
+    if (this.onClick === null) return;
+    if (this.input.isMouseOver(this.dRect) && this.input.clicked) {
+      this.onClick();
+      this.input.clicked = false;
+    }
+  }
+  setOnClick(onClick) {
+    this.onClick = onClick;
+  }
+};
+var LabelButton = class extends Button {
+  constructor(label, labelColor, backgroundColor, sRect, dRect, input, onClick = null) {
+    super(sRect, dRect, input, onClick);
+    this.label = label;
+    this.labelColor = labelColor;
+    this.backgroundColor = backgroundColor;
+  }
+  draw(ctx2) {
+    ctx2.fillStyle = this.backgroundColor;
+    ctx2.fillRect(this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
+    ctx2.fillStyle = this.labelColor;
+    ctx2.textAlign = "center";
+    ctx2.textBaseline = "middle";
+    ctx2.fillText(this.label, this.dRect.x + this.dRect.width / 2, this.dRect.y + this.dRect.height / 2);
+  }
+  update(dt) {
+    super.update(dt);
+  }
+};
+var ColorButton = class extends Button {
+  constructor(color, sRect, dRect, input, onClick = null) {
+    super(sRect, dRect, input, onClick);
+    this.color = color;
+  }
+  draw(ctx2) {
+    ctx2.fillStyle = this.color;
+    ctx2.fillRect(this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
+  }
+  update(dt) {
+    super.update(dt);
+  }
+};
+var ImageButton = class extends Button {
+  constructor(sRect, dRect, input, image, clip = null, onClick = null) {
+    super(sRect, dRect, input, onClick);
+    this.image = image;
+    if (clip !== null) this.clip = clip;
+  }
+  clip = null;
+  draw(ctx2) {
+    if (this.clip === null)
+      ctx2.drawImage(this.image, this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
+    else
+      ctx2.drawImage(this.image, ...this.clip, this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
+  }
+  update(dt) {
+    super.update(dt);
+  }
+};
+
+// src/ui/uiElements/uiHover.ts
+var UIHover = class {
+  constructor(sRect, dRect, input, title, description = "") {
+    this.sRect = sRect;
+    this.dRect = dRect;
+    this.input = input;
+    this.title = title;
+    this.description = description;
+    this.dRect.x += this.sRect.x;
+    this.dRect.y += this.sRect.y;
+  }
+  isOver = false;
+  draw(ctx2) {
+    if (this.isOver) {
+      ctx2.fillStyle = "black";
+      ctx2.fillRect(this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
+      ctx2.textAlign = "center";
+      ctx2.textBaseline = "top";
+      ctx2.fillStyle = "white";
+      ctx2.font = "20px MonogramFont";
+      ctx2.fillText(this.title, this.dRect.x + this.dRect.width / 2, this.dRect.y);
+      if (this.description === "") return;
+      ctx2.textAlign = "center";
+      ctx2.textBaseline = "bottom";
+      ctx2.font = "16px MonogramFont";
+      ctx2.fillText(this.description, this.dRect.x + this.dRect.width / 2, this.dRect.y + this.dRect.height - 2);
+    }
+  }
+  update(dt) {
+    if (this.input.isMouseOver(this.sRect) || this.input.isMouseOver(this.dRect) && this.isOver) {
+      this.isOver = true;
+    } else {
+      this.isOver = false;
+    }
   }
 };
 
@@ -285,31 +430,52 @@ var HUDConfig = class {
   static top = { xRatio: 0, yRatio: 0, widthRatio: 1, heightRatio: 0.1 };
 };
 
-// src/ui/uiElements/Button.ts
-var Button = class {
-  constructor(rect) {
-    this.rect = rect;
+// src/util/rect.ts
+var Rect = class _Rect {
+  x;
+  y;
+  width;
+  height;
+  left;
+  right;
+  top;
+  bottom;
+  constructor(x, y, width, height) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+    this.left = x;
+    this.right = x + width;
+    this.top = y;
+    this.bottom = y + height;
   }
-};
-var ColorButton = class extends Button {
-  constructor(color, rect, input, handleClick) {
-    super(rect);
-    this.color = color;
-    this.input = input;
-    this.handleClick = handleClick;
+  contains(x, y) {
+    return x >= this.x && x < this.x + this.width && y >= this.y && y < this.y + this.height;
   }
-  draw(ctx2) {
-    ctx2.fillStyle = this.color;
-    ctx2.fillRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
+  collide(rect) {
+    return this.contains(rect.x, rect.y) || this.contains(rect.x + rect.width, rect.y) || this.contains(rect.x, rect.y + rect.height) || this.contains(rect.x + rect.width, rect.y + rect.height);
   }
-  update(dt) {
-    if (this.input.isMouseOver(this.rect) && this.input.clicked) {
-      this.onClick();
-      this.input.clicked = false;
-    }
+  copy() {
+    return new _Rect(this.x, this.y, this.width, this.height);
   }
-  onClick(args) {
-    this.handleClick(args);
+  translate(x, y) {
+    return new _Rect(this.x + x, this.y + y, this.width, this.height);
+  }
+  resize(width, height) {
+    return new _Rect(this.x, this.y, width, height);
+  }
+  scale(scale) {
+    return new _Rect(this.x, this.y, this.width * scale, this.height * scale);
+  }
+  center() {
+    return new _Rect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
+  }
+  getCenterX() {
+    return this.x + this.width / 2;
+  }
+  getCenterY() {
+    return this.y + this.height / 2;
   }
 };
 
@@ -338,11 +504,6 @@ var UIBottom = class extends UIGeneric {
     );
     super(rect, input, player);
   }
-  addColorButton(name, color, rect, handleClick) {
-    rect.x += this.rect.x;
-    rect.y += this.rect.y;
-    this.buttons.set(name, new ColorButton(color, rect, this.input, handleClick));
-  }
   draw(ctx2) {
     if (!this.isShown) return;
     ctx2.fillStyle = "red";
@@ -366,29 +527,24 @@ var UILeft = class extends UIGeneric {
     );
     super(rect, input, player);
     this.resize();
-    this.addColorButton("reduce", "white", new Rect(this.rect.width, 0, 30, 30), () => this.resize());
-  }
-  addColorButton(name, color, rect, handleClick) {
-    rect.x += this.rect.x;
-    rect.y += this.rect.y;
-    this.buttons.set(name, new ColorButton(color, rect, this.input, handleClick));
+    this.buttons.set("reduce", new ColorButton("white", this.rect, new Rect(0, 0, 30, 30), this.input, () => this.resize()));
   }
   resize() {
     if (!this.isReduced) {
       if (this.buttons.has("reduce"))
-        this.buttons.get("reduce").rect.x -= this.rect.width;
+        this.buttons.get("reduce").dRect.x -= this.rect.width;
       this.rect.width = 0;
       this.isReduced = true;
     } else {
       this.rect.width = GameConfig.GAME_WIDTH * HUDConfig.left.widthRatio;
       if (this.buttons.has("reduce"))
-        this.buttons.get("reduce").rect.x += this.rect.width;
+        this.buttons.get("reduce").dRect.x += this.rect.width;
       this.isReduced = false;
     }
   }
   draw(ctx2) {
     if (!this.isShown) return;
-    ctx2.fillStyle = "blue";
+    ctx2.fillStyle = "yellow";
     ctx2.fillRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
     for (const [_, button] of this.buttons) button.draw(ctx2);
   }
@@ -400,6 +556,9 @@ var UILeft = class extends UIGeneric {
 // src/ui/uiPanels/uiRight.ts
 var UIRight = class extends UIGeneric {
   isReduced = false;
+  reduceBtn;
+  holdAmounts = [1, 5, 15];
+  currentScreen = "ores";
   constructor(input, player) {
     const rect = new Rect(
       HUDConfig.right.xRatio * GameConfig.GAME_WIDTH,
@@ -409,51 +568,84 @@ var UIRight = class extends UIGeneric {
     );
     super(rect, input, player);
     this.resize();
-    this.addColorButton("reduce", "lime", new Rect(-30, 0, 30, 30), () => this.resize());
-  }
-  addColorButton(name, color, rect, handleClick) {
-    rect.x += this.rect.x;
-    rect.y += this.rect.y;
-    this.buttons.set(name, new ColorButton(color, rect, this.input, handleClick));
+    this.reduceBtn = new ColorButton("lime", this.rect, new Rect(-30, 0, 30, 30), this.input, () => this.resize());
   }
   resize() {
+    if (!this.reduceBtn) return;
     if (!this.isReduced) {
-      if (this.buttons.has("reduce"))
-        this.buttons.get("reduce").rect.x += this.rect.width;
+      this.reduceBtn.dRect.x += this.rect.width;
       this.rect.width = 0;
       this.rect.x = GameConfig.GAME_WIDTH;
       this.isReduced = true;
     } else {
       this.rect.width = GameConfig.GAME_WIDTH * HUDConfig.right.widthRatio;
       this.rect.x = GameConfig.GAME_WIDTH - this.rect.width;
-      if (this.buttons.has("reduce"))
-        this.buttons.get("reduce").rect.x -= this.rect.width;
+      this.reduceBtn.dRect.x -= this.rect.width;
       this.isReduced = false;
     }
   }
   draw(ctx2) {
     if (!this.isShown) return;
+    this.drawInventory(ctx2);
+    this.reduceBtn.draw(ctx2);
+  }
+  drawInventory(ctx2) {
+    if (this.isReduced) return;
     ctx2.fillStyle = "green";
     ctx2.fillRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
-    ctx2.font = "22px monospace_pixel";
     ctx2.fillStyle = "white";
     let c = 0;
     for (const i of this.player.getInventory()) {
-      ctx2.textBaseline = "middle";
+      const inventorySlot = new Rect(this.rect.x + 40, this.rect.y + 80 + 80 * c + 10 * c, this.rect.width - 80, 60);
+      ctx2.drawImage(
+        i[1].item.sprite,
+        ...i[1].item.spriteClip,
+        inventorySlot.x + inventorySlot.width / 2 - 50,
+        inventorySlot.y + inventorySlot.height / 2 - 32,
+        64,
+        64
+      );
+      ctx2.font = "22px MonogramFont";
       ctx2.textAlign = "left";
-      ctx2.drawImage(i[1].item.sprite, ...i[1].item.spriteClip, this.rect.x + 10, this.rect.y + i[1].item.spriteClip[3] * c + c * 10 + 10, 30, 30);
+      ctx2.textBaseline = "middle";
       ctx2.fillText(
         i[0],
-        this.rect.x + i[1].item.spriteClip[2] + 10,
-        this.rect.y + i[1].item.spriteClip[3] * c + c * 10 + 10 + i[1].item.spriteClip[3] / 2
+        inventorySlot.x,
+        inventorySlot.y - 12
       );
-      c++;
+      ctx2.font = "32px MonogramFont";
       ctx2.textAlign = "right";
-      ctx2.fillText(i[1].amount.toString(), 5 + this.rect.x + i[1].item.spriteClip[2], this.rect.y + i[1].item.spriteClip[3] * c + c * 10);
+      ctx2.textBaseline = "middle";
+      ctx2.fillText(
+        i[1].amount.toString(),
+        inventorySlot.x + inventorySlot.width / 2,
+        inventorySlot.y + inventorySlot.height / 2 + 10
+      );
+      ctx2.font = "16px MonogramFont";
+      if (!this.buttons.has(i[0] + "x1")) {
+        this.holdAmounts.forEach((amount, index) => {
+          this.buttons.set(
+            i[0] + "x" + amount,
+            new LabelButton(
+              "x" + amount,
+              "white",
+              "black",
+              inventorySlot,
+              new Rect(inventorySlot.width - 30, inventorySlot.height / 3 * index, 30, inventorySlot.height / 3),
+              this.input,
+              () => {
+                EventBus.emit("hold_item", i[1].item, amount);
+              }
+            )
+          );
+        });
+      }
+      c++;
     }
     for (const [_, button] of this.buttons) button.draw(ctx2);
   }
   update(dt) {
+    this.reduceBtn.update(dt);
     for (const [_, button] of this.buttons) button.update(dt);
   }
 };
@@ -469,25 +661,21 @@ var UITop = class extends UIGeneric {
     );
     super(rect, input, player);
   }
-  addColorButton(name, color, rect, handleClick) {
-    rect.x += this.rect.x;
-    rect.y += this.rect.y;
-    this.buttons.set(name, new ColorButton(color, rect, this.input, handleClick));
-  }
   draw(ctx2) {
     if (!this.isShown) return;
     ctx2.fillStyle = "hsla(0, 0%, 10%, 0.8)";
     ctx2.fillRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
-    if (this.player.gear.pickaxe)
-      ctx2.drawImage(this.player.gear.pickaxe.sprite, ...this.player.gear.pickaxe.spriteClip, this.rect.x + 10, this.rect.y + 10, 30, 30);
+    for (const [_, button] of this.buttons) button.draw(ctx2);
   }
   update(dt) {
+    for (const [_, button] of this.buttons) button.update(dt);
   }
 };
 
 // src/ui/uiPanels/uiHUD.ts
 var uiHUD = class {
   constructor(input, player) {
+    this.input = input;
     this.player = player;
     this.sections = /* @__PURE__ */ new Map([
       ["left", new UILeft(input, player)],
@@ -500,6 +688,12 @@ var uiHUD = class {
   draw(ctx2) {
     for (const section of this.sections.values()) {
       section.draw(ctx2);
+    }
+    if (this.player.holdingItem) {
+      ctx2.drawImage(this.player.holdingItem.item.sprite, ...this.player.holdingItem.item.spriteClip, this.input.x - 32, this.input.y - 32, 64, 64);
+      ctx2.fillStyle = "white";
+      ctx2.font = "24px MonogramFont";
+      ctx2.fillText(this.player.holdingItem.amount.toString(), this.input.x + 16, this.input.y + 16);
     }
   }
   update(dt) {
@@ -515,21 +709,46 @@ var UIManager = class {
     this.input = input;
     this.player = player;
     this.hud = new uiHUD(input, player);
+    EventBus.on("set_tooltip", (tooltip) => this.activeToolTip = tooltip);
   }
   hud;
+  hovers = /* @__PURE__ */ new Map();
   isHUDActive = true;
+  activeToolTip = "";
   setIsHUDActive(isHUDActive) {
     this.isHUDActive = isHUDActive;
   }
   addHUDColorButton(side, name, color, rect, handleClick) {
-    this.hud.sections.get(side).addColorButton(name, color, rect, handleClick);
+    this.hud.sections.get(side).buttons.set(name, new ColorButton(color, this.hud.sections.get(side).rect, rect, this.input));
+    this.hud.sections.get(side).buttons.get(name).setOnClick(handleClick);
+  }
+  addHUDImageButton(side, name, image, clip, rect, handleClick = null) {
+    this.hud.sections.get(side).buttons.set(name, new ImageButton(this.hud.sections.get(side).rect, rect, this.input, image, clip, handleClick));
+  }
+  addButtonHover(button, dRect, title, description = "") {
+    this.hovers.set(title, new UIHover(button.dRect, dRect, this.input, title, description));
+  }
+  getHUDButton(side, name) {
+    return this.hud.sections.get(side).buttons.get(name);
   }
   draw(ctx2) {
-    if (this.isHUDActive)
-      this.hud.draw(ctx2);
+    if (!this.isHUDActive) return;
+    this.hud.draw(ctx2);
+    this.hovers.forEach((hover) => hover.draw(ctx2));
+    if (this.activeToolTip === "") return;
+    ctx2.font = "16px MonogramFont";
+    const wordData = ctx2.measureText(this.activeToolTip);
+    ctx2.fillStyle = "black";
+    ctx2.fillRect(this.input.x - wordData.width / 2, this.input.y - 20, wordData.width + 10, 20);
+    ctx2.fillStyle = "white";
+    ctx2.textAlign = "center";
+    ctx2.textBaseline = "middle";
+    ctx2.fillText(this.activeToolTip, this.input.x + 5, this.input.y - 10);
+    this.activeToolTip = "";
   }
   update(dt) {
     this.hud.update(dt);
+    this.hovers.forEach((hover) => hover.update(dt));
   }
 };
 
@@ -565,104 +784,49 @@ var InputManager = class {
   isMouseOver(rect) {
     return rect.collide(new Rect(this.x, this.y, 1, 1));
   }
-};
-
-// src/core/EventBus.ts
-var EventBus = class {
-  static events = /* @__PURE__ */ new Map();
-  constructor() {
-  }
-  static on(event, listener) {
-    if (!this.events.has(event)) this.events.set(event, []);
-    this.events.get(event).push(listener);
-  }
-  static off(event, listener) {
-    const list = this.events.get(event);
-    if (!list) return;
-    const index = list.indexOf(listener);
-    if (index !== -1) list.splice(index, 1);
-  }
-  static emit(event, ...args) {
-    const list = this.events.get(event);
-    if (!list) return;
-    for (const l of list) l(...args);
+  getRect() {
+    return new Rect(this.x, this.y, 1, 1);
   }
 };
 
-// src/entities/Ore.ts
+// src/entities/Boulder.ts
 var OreBoulder = class {
-  constructor(rect, sprite, spriteClip) {
+  constructor(rect, sprite, spriteClip, name, maxHealth = 0, drop) {
     this.rect = rect;
     this.sprite = sprite;
     this.spriteClip = spriteClip;
+    this.name = name;
+    this.maxHealth = maxHealth;
+    this.drop = drop;
+    this.health = maxHealth;
   }
-  maxHealth = 0;
-  health = 0;
+  health;
   draw(ctx2) {
     ctx2.drawImage(this.sprite, ...this.spriteClip, this.rect.x, this.rect.y, this.rect.width, this.rect.height);
-    ctx2.fillStyle = "white";
-    ctx2.textAlign = "center";
-    ctx2.font = "24px MonogramFont";
-    ctx2.fillText(`${this.health.toString()}/${this.maxHealth.toString()}`, this.rect.x + this.rect.width / 2, this.rect.y - 20);
-  }
-  update(dt) {
   }
 };
 var CopperOreBoulder = class extends OreBoulder {
-  constructor(rect, input) {
+  constructor(rect) {
     const assetManager = AssetManager.getInstance();
     const sprite = assetManager.getObjectImage("copperOreBoulder").img;
     const spriteClip = assetManager.getObjectImage("copperOreBoulder").clip;
-    super(rect, sprite, spriteClip);
-    this.input = input;
-    this.health = this.maxHealth = 25;
-  }
-  update(dt) {
-    if (!this.input.isMouseOver(this.rect) || !this.input.clicked)
-      return;
-    this.health -= 1;
-    if (this.health === 0) {
-      EventBus.emit("ore_collected", this, new CopperOre());
-    }
-    this.input.clicked = false;
+    super(rect, sprite, spriteClip, "Copper Boulder", 25, new CopperOre());
   }
 };
 var GoldOreBoulder = class extends OreBoulder {
-  constructor(rect, input) {
+  constructor(rect) {
     const assetManager = AssetManager.getInstance();
     const sprite = assetManager.getObjectImage("goldOreBoulder").img;
     const spriteClip = assetManager.getObjectImage("goldOreBoulder").clip;
-    super(rect, sprite, spriteClip);
-    this.input = input;
-    this.health = this.maxHealth = 100;
-  }
-  update(dt) {
-    if (!this.input.isMouseOver(this.rect) || !this.input.clicked)
-      return;
-    this.health -= 1;
-    if (this.health === 0) {
-      EventBus.emit("ore_collected", this, new GoldOre());
-    }
-    this.input.clicked = false;
+    super(rect, sprite, spriteClip, "Gold Boulder", 100, new GoldOre());
   }
 };
 var CoalOreBoulder = class extends OreBoulder {
-  constructor(rect, input) {
+  constructor(rect) {
     const assetManager = AssetManager.getInstance();
     const sprite = assetManager.getObjectImage("coalOreBoulder").img;
     const spriteClip = assetManager.getObjectImage("coalOreBoulder").clip;
-    super(rect, sprite, spriteClip);
-    this.input = input;
-    this.health = this.maxHealth = 5;
-  }
-  update(dt) {
-    if (!this.input.isMouseOver(this.rect) || !this.input.clicked)
-      return;
-    this.health -= 1;
-    if (this.health === 0) {
-      EventBus.emit("ore_collected", this, new CoalOre());
-    }
-    this.input.clicked = false;
+    super(rect, sprite, spriteClip, "Coal Boulder", 5, new CoalOre());
   }
 };
 
@@ -689,36 +853,44 @@ var CaveScene = class extends GenericScene {
     super(input, player, sprite);
     this.input = input;
     this.player = player;
-    for (const spot of this.spots) this.generateOre(spot);
-    EventBus.on("ore_collected", (oreBoulder, ore) => {
-      this.spots.find((spot) => spot.ore === oreBoulder).ore = null;
-      const oreBoulderIndex = this.ores.indexOf(oreBoulder);
-      delete this.ores[oreBoulderIndex];
-      this.ores.splice(oreBoulderIndex, 1);
-      this.player.addItem(ore, 5);
-    });
   }
   oreRespawnTime = 20;
   ores = [];
-  canSpawn = [CoalOreBoulder, CopperOreBoulder, GoldOreBoulder];
+  canSpawn = [{ type: CoalOreBoulder, chance: 0.5 }, { type: CopperOreBoulder, chance: 0.4 }, { type: GoldOreBoulder, chance: 0.1 }];
   spots = [
-    { x: 80, y: 280, ore: null, spawnTime: 0 },
-    { x: 550, y: 320, ore: null, spawnTime: 0 },
-    { x: 300, y: 240, ore: null, spawnTime: 0 }
+    { x: 80, y: 340, ore: null, spawnTime: 20 },
+    { x: 550, y: 320, ore: null, spawnTime: 20 },
+    { x: 300, y: 300, ore: null, spawnTime: 20 },
+    { x: 460, y: 260, ore: null, spawnTime: 20 }
   ];
   draw(ctx2) {
     super.draw(ctx2);
     for (const ore of this.ores) ore.draw(ctx2);
+    ctx2.fillStyle = "white";
+    ctx2.textAlign = "center";
+    ctx2.textBaseline = "bottom";
+    ctx2.font = "24px MonogramFont";
     for (const spot of this.spots) {
-      if (spot.ore) continue;
-      ctx2.fillStyle = "white";
-      ctx2.textAlign = "center";
-      ctx2.font = "24px MonogramFont";
-      ctx2.fillText((this.oreRespawnTime - spot.spawnTime).toFixed(0).toString() + "s", spot.x + 64, spot.y + 64);
+      if (spot.ore) {
+        ctx2.fillText(`${spot.ore.health.toString()}/${spot.ore.maxHealth.toString()}`, spot.ore.rect.x + spot.ore.rect.width / 2, spot.ore.rect.y - 20);
+      } else {
+        ctx2.fillText((this.oreRespawnTime - spot.spawnTime).toFixed(0) + "s", spot.x + 32, spot.y + 32);
+      }
     }
   }
   update(dt) {
-    for (const ore of this.ores) ore.update(dt);
+    for (const ore of this.ores) {
+      if (this.input.isMouseOver(ore.rect)) {
+        EventBus.emit("set_tooltip", ore.name);
+        if (this.input.clicked) {
+          ore.health -= this.player.getPickaxeDamage();
+          if (ore.health <= 0) {
+            this.handleOreCollected(ore, ore.drop);
+          }
+          this.input.clicked = false;
+        }
+      }
+    }
     for (const spot of this.spots) {
       if (spot.ore) continue;
       if (spot.spawnTime < this.oreRespawnTime) {
@@ -728,19 +900,45 @@ var CaveScene = class extends GenericScene {
       this.generateOre(spot);
     }
   }
+  handleOreCollected = (oreBoulder, ore) => {
+    this.spots.find((spot) => spot.ore === oreBoulder).ore = null;
+    const oreBoulderIndex = this.ores.indexOf(oreBoulder);
+    delete this.ores[oreBoulderIndex];
+    this.ores.splice(oreBoulderIndex, 1);
+    this.player.addItem(ore, 5);
+  };
   generateOre(spot) {
-    const ore = new this.canSpawn[Math.floor(Math.random() * this.canSpawn.length)](new Rect(spot.x, spot.y, 128, 128), this.input);
+    const oreType = this.pickRandomOreType();
+    const ore = new oreType(new Rect(spot.x, spot.y, 64, 64));
     this.ores.push(ore);
     spot.ore = ore;
     spot.spawnTime = 0;
   }
-  reEnter(enteredTime) {
+  pickRandomOreType() {
+    const total = this.canSpawn.reduce((sum, o) => sum + o.chance, 0);
+    const rand = Math.random() * total;
+    let cumulative = 0;
+    for (const option of this.canSpawn) {
+      cumulative += option.chance;
+      if (rand <= cumulative) {
+        return option.type;
+      }
+    }
+    return this.canSpawn[0].type;
+  }
+  enter() {
+    EventBus.on("ore_collected", this.handleOreCollected);
+    const enteredTime = this.exitedTime === 0 ? 0 : (Date.now() - this.exitedTime) / 1e3;
     for (const spot of this.spots) {
       if (spot.ore) continue;
-      spot.spawnTime += (enteredTime - this.exitedTime) / 1e3;
+      spot.spawnTime += enteredTime;
       if (spot.spawnTime < this.oreRespawnTime) continue;
       this.generateOre(spot);
     }
+  }
+  exit() {
+    this.exitedTime = Date.now();
+    EventBus.off("ore_collected", this.handleOreCollected);
   }
 };
 
@@ -754,25 +952,114 @@ var GenericObject = class {
 };
 
 // src/entities/Furnace.ts
-var furnaceSpriteClipAnimation = [[32 * 2, 13 * 32, 32 * 2, 32 * 3], [32 * 4, 13 * 32, 32 * 2, 32 * 3], [32 * 6, 13 * 32, 32 * 2, 32 * 3]];
 var Furnace = class extends GenericObject {
   isActive = false;
+  animationTimer = 0;
   animationStep = 0;
+  animationSpeed = 20;
+  temperature = 0;
+  animatedSprites;
+  fuel = null;
+  output = null;
+  outputMelt = 0;
+  maxSpaceAmount = 30;
+  content = [];
   constructor(rect) {
     const assetManager = AssetManager.getInstance();
-    const img = assetManager.getObjectImage("furnace");
-    const sprite = img?.img;
-    const clip = img?.clip;
+    const sprite = assetManager.getObjectImage("furnace").img;
+    const clip = assetManager.getObjectImage("furnace").clip;
     super(rect, sprite, clip);
+    this.animatedSprites = /* @__PURE__ */ new Map([
+      [0, { img: assetManager.getObjectImage("furnaceAnimation1").img, clip: assetManager.getObjectImage("furnaceAnimation1").clip }],
+      [1, { img: assetManager.getObjectImage("furnaceAnimation2").img, clip: assetManager.getObjectImage("furnaceAnimation2").clip }],
+      [2, { img: assetManager.getObjectImage("furnaceAnimation3").img, clip: assetManager.getObjectImage("furnaceAnimation3").clip }]
+    ]);
   }
   draw(ctx2) {
-    if (!this.sprite) return;
-    ctx2.drawImage(this.sprite, ...this.spriteClip, this.rect.x, this.rect.y, this.rect.width, this.rect.height);
+    if (!this.isActive) {
+      ctx2.drawImage(this.sprite, ...this.spriteClip, this.rect.x, this.rect.y, this.rect.width, this.rect.height);
+    } else {
+      ctx2.drawImage(
+        this.animatedSprites.get(this.animationStep).img,
+        ...this.animatedSprites.get(this.animationStep).clip,
+        this.rect.x,
+        this.rect.y,
+        this.rect.width,
+        this.rect.height
+      );
+    }
   }
-  update() {
+  update(dt) {
     if (!this.isActive) return;
-    this.animationStep = (this.animationStep + 1) % 3;
-    this.spriteClip = furnaceSpriteClipAnimation[this.animationStep];
+    if (this.temperature <= 0) {
+      if (this.fuel !== null && this.fuel.amount > 0) {
+        this.fuel.amount--;
+        this.temperature += this.fuel.item.burnTime;
+      } else {
+        if (this.fuel.amount === 0) this.fuel = null;
+        this.isActive = false;
+      }
+    } else if (this.temperature > 0) {
+      this.temperature -= dt;
+      if (this.output && !this.checkIsFull()) {
+        this.outputMelt += dt;
+        if (this.outputMelt >= this.output.item.meltTime) {
+          this.addInnerContent(this.output.item, 1);
+          if (--this.output.amount === 0) this.output = null;
+          this.outputMelt = 0;
+        }
+      }
+    }
+    if (this.animationTimer > this.animationSpeed) {
+      this.animationStep = (this.animationStep + 1) % 3;
+      this.animationTimer = 0;
+    }
+    this.animationTimer += dt * 150;
+  }
+  addFuel(fuel, amount) {
+    if (this.fuel !== null) {
+      if (this.fuel.item.name === fuel.name) {
+        this.fuel.amount += amount;
+        return true;
+      }
+      return false;
+    }
+    this.fuel = { item: fuel, amount };
+    this.isActive = true;
+    return true;
+  }
+  addOutput(output, amount) {
+    if (this.output !== null) {
+      if (this.output.item.name === output.name) {
+        this.output.amount += amount;
+        return true;
+      }
+      return false;
+    }
+    this.output = { item: output, amount };
+    return true;
+  }
+  addInnerContent(ore, amount) {
+    for (const c of this.content) {
+      if (c.ore.name === ore.name) {
+        c.amount += amount;
+        return;
+      }
+    }
+    this.content.push({ ore, amount });
+  }
+  checkIsFull() {
+    let amount = 0;
+    for (const c of this.content) {
+      amount += c.amount;
+    }
+    return amount >= this.maxSpaceAmount;
+  }
+  getFuel() {
+    return this.fuel;
+  }
+  getOutput() {
+    return this.output;
   }
 };
 
@@ -784,16 +1071,63 @@ var ForgeScene = class extends GenericScene {
     super(input, player, sprite);
     this.input = input;
     this.player = player;
-    this.objects.push(new Furnace(new Rect(120, 200, 120, 120 * 1.6)));
+    this.furnaces.push(new Furnace(new Rect(120, 200, 120, 120 * 1.6)));
   }
-  objects = [];
+  furnaces = [];
   draw(ctx2) {
     super.draw(ctx2);
-    for (const object of this.objects) object.draw(ctx2);
+    for (const furnace of this.furnaces) {
+      furnace.draw(ctx2);
+      const furnaceUi = new Rect(furnace.rect.x, furnace.rect.y - 50, furnace.rect.width, 50);
+      ctx2.fillStyle = "white";
+      ctx2.fillRect(furnaceUi.x, furnaceUi.y, furnaceUi.width, furnaceUi.height);
+      ctx2.font = "20px MonogramFont";
+      if (furnace.isActive) {
+        ctx2.fillStyle = "orange";
+        ctx2.fillRect(furnaceUi.x + 5, furnaceUi.y + 5 + 40 - 40 * furnace.temperature / furnace.getFuel().item.burnTime, 40, 40 * furnace.temperature / furnace.getFuel().item.burnTime);
+      }
+      ctx2.strokeStyle = "black";
+      ctx2.fillStyle = "black";
+      ctx2.textAlign = "right";
+      ctx2.textBaseline = "bottom";
+      ctx2.strokeRect(furnaceUi.x + 5, furnaceUi.y + 5, 40, 40);
+      ctx2.strokeRect(furnaceUi.x + furnaceUi.width - 45, furnaceUi.y + 5, 40, 40);
+      if (furnace.getFuel()) {
+        ctx2.drawImage(furnace.getFuel().item.sprite, ...furnace.getFuel().item.spriteClip, furnaceUi.x + 5, furnaceUi.y + 5, 40, 40);
+        ctx2.fillText(furnace.getFuel().amount.toString(), furnaceUi.x + 40, furnaceUi.y + 45);
+      }
+      if (furnace.getOutput()) {
+        ctx2.drawImage(furnace.getOutput().item.sprite, ...furnace.getOutput().item.spriteClip, furnaceUi.x + furnaceUi.width - 45, furnaceUi.y + 5, 40, 40);
+        ctx2.fillText(furnace.getOutput().amount.toString(), furnaceUi.x + furnaceUi.width - 10, furnaceUi.y + 45);
+      }
+    }
+    ;
   }
   update(dt) {
+    for (const furnace of this.furnaces) furnace.update(dt);
+    for (const furnace of this.furnaces) {
+      if (this.input.clicked) {
+        if (furnace.rect.collide(this.input.getRect())) {
+          if (this.player.holdingItem) {
+            if (this.player.holdingItem.item instanceof Fuel) {
+              if (furnace.addFuel(this.player.holdingItem.item, this.player.holdingItem.amount))
+                this.player.removeItem(this.player.holdingItem.item, this.player.holdingItem.amount);
+            } else if (this.player.holdingItem.item instanceof Ore) {
+              if (furnace.addOutput(this.player.holdingItem.item, this.player.holdingItem.amount))
+                this.player.removeItem(this.player.holdingItem.item, this.player.holdingItem.amount);
+            }
+            this.input.clicked = false;
+          } else {
+            EventBus.emit("open_furnace", furnace);
+          }
+        }
+        this.player.holdingItem = null;
+      }
+    }
   }
-  reEnter(enteredTime) {
+  enter() {
+  }
+  exit() {
   }
 };
 
@@ -812,7 +1146,9 @@ var QuestsScene = class extends GenericScene {
   }
   update(dt) {
   }
-  reEnter(enteredTime) {
+  enter() {
+  }
+  exit() {
   }
 };
 
@@ -829,7 +1165,35 @@ var SmeltScene = class extends GenericScene {
   }
   update(dt) {
   }
-  reEnter(enteredTime) {
+  enter() {
+  }
+  exit() {
+  }
+};
+
+// src/scenes/FurnaceScene.ts
+var FurnaceScene = class extends GenericScene {
+  constructor(input, player, furnace) {
+    const assetManager = AssetManager.getInstance();
+    const sprite = assetManager.getBackgroundImage("furnaceBackground");
+    super(input, player, sprite);
+    this.furnace = furnace;
+  }
+  plates = [];
+  activePlate = null;
+  draw(ctx2) {
+    super.draw(ctx2);
+    if (this.activePlate)
+      ctx2.drawImage(this.activePlate.sprite, ...this.activePlate.spriteClip, this.rect.width / 2 - 90, 150, 180, 180);
+    console.log(this.furnace.content);
+  }
+  update(dt) {
+    for (const plate of this.plates) {
+    }
+  }
+  enter() {
+  }
+  exit() {
   }
 };
 
@@ -838,34 +1202,39 @@ var SceneManager = class {
   constructor(input, player) {
     this.input = input;
     this.player = player;
+    EventBus.on("open_furnace", (furnace) => this.setScene("furnace", furnace));
   }
   loadedScenes = /* @__PURE__ */ new Map();
   sceneClasses = {
-    "cave": CaveScene,
-    "forge": ForgeScene,
-    "quests": QuestsScene,
-    "smelt": SmeltScene
+    cave: CaveScene,
+    forge: ForgeScene,
+    quests: QuestsScene,
+    smelt: SmeltScene,
+    furnace: FurnaceScene
   };
   currentScene = "cave";
   draw(ctx2) {
-    this.loadedScenes.get(this.currentScene).draw(ctx2);
+    this.loadedScenes.get(this.currentScene)?.draw(ctx2);
   }
   update(dt) {
-    this.loadedScenes.get(this.currentScene).update(dt);
+    this.loadedScenes.get(this.currentScene)?.update(dt);
   }
-  setScene(scene) {
-    if (this.loadedScenes.has(this.currentScene)) this.loadedScenes.get(this.currentScene).exitedTime = Date.now();
+  // 🧠 Método totalmente tipado
+  setScene(scene, ...args) {
+    this.loadedScenes.get(this.currentScene)?.exit();
     this.currentScene = scene;
-    this.loadScene(scene);
+    this.loadScene(scene, ...args);
   }
-  loadScene(scene) {
+  loadScene(scene, ...args) {
+    let newScene;
     if (this.loadedScenes.has(scene)) {
-      const newScene2 = this.loadedScenes.get(scene);
-      newScene2.reEnter(Date.now());
-      return newScene2;
+      newScene = this.loadedScenes.get(scene);
+    } else {
+      const SceneClass = this.sceneClasses[scene];
+      newScene = new SceneClass(this.input, this.player, ...args);
+      this.loadedScenes.set(scene, newScene);
     }
-    const newScene = new this.sceneClasses[scene](this.input, this.player);
-    this.loadedScenes.set(scene, newScene);
+    newScene.enter();
     return newScene;
   }
 };
@@ -880,18 +1249,26 @@ var Game = class {
     this.uiManager = new UIManager(input, this.player);
     this.sceneManager = new SceneManager(input, this.player);
     this.uiManager.addHUDColorButton("bottom", "cave", "purple", new Rect(10, 10, 30, 30), () => this.sceneManager.setScene("cave"));
+    this.uiManager.addButtonHover(this.uiManager.getHUDButton("bottom", "cave"), new Rect(-5, -20, 40, 20), "Cave");
     this.uiManager.addHUDColorButton("bottom", "forge", "black", new Rect(50, 10, 30, 30), () => this.sceneManager.setScene("forge"));
-    this.uiManager.addHUDColorButton("bottom", "quests", "green", new Rect(90, 10, 30, 30), () => this.sceneManager.setScene("quests"));
+    this.uiManager.addButtonHover(this.uiManager.getHUDButton("bottom", "forge"), new Rect(-8, -20, 46, 20), "Forge");
   }
   async start() {
     const assetManager = AssetManager.getInstance();
     await assetManager.loadAll();
     this.player.init();
-    this.sceneManager.setScene("cave");
+    this.uiManager.addHUDImageButton("top", "player_pickaxe", this.player.gear.pickaxe.sprite, this.player.gear.pickaxe.spriteClip, new Rect(10, 10, 30, 30));
+    this.uiManager.addButtonHover(
+      this.uiManager.getHUDButton("top", "player_pickaxe"),
+      new Rect(30, 0, 120, 35),
+      `${this.player.gear.pickaxe.name}`,
+      `Damage: ${this.player.gear.pickaxe.damage}`
+    );
+    this.sceneManager.setScene("forge");
   }
   update(dt) {
-    this.sceneManager.update(dt);
     this.uiManager.update(dt);
+    this.sceneManager.update(dt);
   }
   draw(ctx2) {
     this.sceneManager.draw(ctx2);
