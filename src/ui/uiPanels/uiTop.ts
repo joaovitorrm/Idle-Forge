@@ -3,7 +3,6 @@ import { HUDConfig } from "../../config/hudConfig.js";
 import type { InputManager } from "../../core/InputManager.js";
 import type Player from "../../entities/Player.js";
 import Rect from "../../util/rect.js";
-import { ColorButton, type Button } from "../uiElements/Button.js";
 import { UIGeneric } from "./uiGeneric.js";
 
 export default class UITop extends UIGeneric {
@@ -25,12 +24,11 @@ export default class UITop extends UIGeneric {
         ctx.fillStyle = "hsla(0, 0%, 10%, 0.8)";
         ctx.fillRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
 
-        if (this.player.gear.pickaxe)
-            ctx.drawImage(this.player.gear.pickaxe.sprite, ...this.player.gear.pickaxe.spriteClip, this.rect.x + 10, this.rect.y + 10, 30, 30);
-        }
+        for (const [_, button] of this.buttons) button.draw(ctx);
+    }
 
-
-
-    update(dt: number): void { }
+    update(dt: number): void {
+        for (const [_, button] of this.buttons) button.update(dt);
+    }
 
 }

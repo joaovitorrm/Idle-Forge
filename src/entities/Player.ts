@@ -1,13 +1,19 @@
 import { EventBus } from "../core/EventBus.js";
 import Inventory from "./Inventory.js";
-import { Fuel, type Item, Ore, StarterPickaxe } from "./Item.js";
+import { Fuel, type Item, Ore, Pickaxe, StarterPickaxe } from "./Item.js";
 
 type CanHold = Fuel | Ore;
+
+interface Gear {
+    "pickaxe": Pickaxe | null,
+}
 
 export default class Player {
     private money: number = 0;
     private inventory: Inventory = new Inventory();
-    public gear: Record<string, Item> = {};
+    public gear: Gear = {
+        "pickaxe": null,
+    };
     public holdingItem: { item: CanHold, amount: number } | null = null;
     //public unlockedPlates : Map<string, Plate> = new Map();
 
@@ -60,7 +66,7 @@ export default class Player {
     }
 
     getPickaxeDamage(): number {
-        return 0;
+        return this.gear.pickaxe!.damage;
     }
 
     getItemAmount(item: Item): number {

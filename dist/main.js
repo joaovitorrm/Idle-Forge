@@ -167,13 +167,13 @@ var Fuel = class extends Item {
     this.burnTime = burnTime;
   }
 };
-var Tool = class extends Item {
+var Pickaxe = class extends Item {
   constructor(name, sprite, spriteClip, damage) {
     super(name, sprite, spriteClip);
     this.damage = damage;
   }
 };
-var StarterPickaxe = class extends Tool {
+var StarterPickaxe = class extends Pickaxe {
   constructor() {
     const assetManager = AssetManager.getInstance();
     const { img, clip } = assetManager.getObjectImage("stonePickaxe");
@@ -264,7 +264,9 @@ var Inventory = class {
 var Player = class {
   money = 0;
   inventory = new Inventory();
-  gear = {};
+  gear = {
+    "pickaxe": null
+  };
   holdingItem = null;
   //public unlockedPlates : Map<string, Plate> = new Map();
   init() {
@@ -304,7 +306,7 @@ var Player = class {
     this.inventory.removeItem(item, amount);
   }
   getPickaxeDamage() {
-    return 0;
+    return this.gear.pickaxe.damage;
   }
   getItemAmount(item) {
     return this.inventory.getItemAmount(item);
@@ -313,21 +315,32 @@ var Player = class {
 
 // src/ui/uiElements/Button.ts
 var Button = class {
-  constructor(sRect, dRect, input, onClick) {
+  constructor(sRect, dRect, input, onClick = null) {
     this.sRect = sRect;
     this.dRect = dRect;
     this.input = input;
+    this.dRect.x += this.sRect.x;
+    this.dRect.y += this.sRect.y;
+    if (onClick !== null) this.onClick = onClick;
+  }
+  onClick = null;
+  update(dt) {
+    if (this.onClick === null) return;
+    if (this.input.isMouseOver(this.dRect) && this.input.clicked) {
+      this.onClick();
+      this.input.clicked = false;
+    }
+  }
+  setOnClick(onClick) {
     this.onClick = onClick;
   }
 };
 var LabelButton = class extends Button {
-  constructor(label, labelColor, backgroundColor, sRect, dRect, input, onClick) {
+  constructor(label, labelColor, backgroundColor, sRect, dRect, input, onClick = null) {
     super(sRect, dRect, input, onClick);
     this.label = label;
     this.labelColor = labelColor;
     this.backgroundColor = backgroundColor;
-    this.dRect.x += this.sRect.x;
-    this.dRect.y += this.sRect.y;
   }
   draw(ctx2) {
     ctx2.fillStyle = this.backgroundColor;
@@ -338,27 +351,73 @@ var LabelButton = class extends Button {
     ctx2.fillText(this.label, this.dRect.x + this.dRect.width / 2, this.dRect.y + this.dRect.height / 2);
   }
   update(dt) {
-    if (this.input.isMouseOver(this.dRect) && this.input.clicked) {
-      this.onClick();
-      this.input.clicked = false;
-    }
+    super.update(dt);
   }
 };
 var ColorButton = class extends Button {
-  constructor(color, sRect, dRect, input, onClick) {
+  constructor(color, sRect, dRect, input, onClick = null) {
     super(sRect, dRect, input, onClick);
     this.color = color;
-    this.dRect.x += this.sRect.x;
-    this.dRect.y += this.sRect.y;
   }
   draw(ctx2) {
     ctx2.fillStyle = this.color;
     ctx2.fillRect(this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
   }
   update(dt) {
-    if (this.input.isMouseOver(this.dRect) && this.input.clicked) {
-      this.onClick();
-      this.input.clicked = false;
+    super.update(dt);
+  }
+};
+var ImageButton = class extends Button {
+  constructor(sRect, dRect, input, image, clip = null, onClick = null) {
+    super(sRect, dRect, input, onClick);
+    this.image = image;
+    if (clip !== null) this.clip = clip;
+  }
+  clip = null;
+  draw(ctx2) {
+    if (this.clip === null)
+      ctx2.drawImage(this.image, this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
+    else
+      ctx2.drawImage(this.image, ...this.clip, this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
+  }
+  update(dt) {
+    super.update(dt);
+  }
+};
+
+// src/ui/uiElements/uiHover.ts
+var UIHover = class {
+  constructor(sRect, dRect, input, title, description = "") {
+    this.sRect = sRect;
+    this.dRect = dRect;
+    this.input = input;
+    this.title = title;
+    this.description = description;
+    this.dRect.x += this.sRect.x;
+    this.dRect.y += this.sRect.y;
+  }
+  isOver = false;
+  draw(ctx2) {
+    if (this.isOver) {
+      ctx2.fillStyle = "black";
+      ctx2.fillRect(this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
+      ctx2.textAlign = "center";
+      ctx2.textBaseline = "top";
+      ctx2.fillStyle = "white";
+      ctx2.font = "20px MonogramFont";
+      ctx2.fillText(this.title, this.dRect.x + this.dRect.width / 2, this.dRect.y);
+      if (this.description === "") return;
+      ctx2.textAlign = "center";
+      ctx2.textBaseline = "bottom";
+      ctx2.font = "16px MonogramFont";
+      ctx2.fillText(this.description, this.dRect.x + this.dRect.width / 2, this.dRect.y + this.dRect.height - 2);
+    }
+  }
+  update(dt) {
+    if (this.input.isMouseOver(this.sRect) || this.input.isMouseOver(this.dRect) && this.isOver) {
+      this.isOver = true;
+    } else {
+      this.isOver = false;
     }
   }
 };
@@ -575,7 +634,6 @@ var UIRight = class extends UIGeneric {
               new Rect(inventorySlot.width - 30, inventorySlot.height / 3 * index, 30, inventorySlot.height / 3),
               this.input,
               () => {
-                this.input.clicked = false;
                 EventBus.emit("hold_item", i[1].item, amount);
               }
             )
@@ -607,10 +665,10 @@ var UITop = class extends UIGeneric {
     if (!this.isShown) return;
     ctx2.fillStyle = "hsla(0, 0%, 10%, 0.8)";
     ctx2.fillRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
-    if (this.player.gear.pickaxe)
-      ctx2.drawImage(this.player.gear.pickaxe.sprite, ...this.player.gear.pickaxe.spriteClip, this.rect.x + 10, this.rect.y + 10, 30, 30);
+    for (const [_, button] of this.buttons) button.draw(ctx2);
   }
   update(dt) {
+    for (const [_, button] of this.buttons) button.update(dt);
   }
 };
 
@@ -651,21 +709,46 @@ var UIManager = class {
     this.input = input;
     this.player = player;
     this.hud = new uiHUD(input, player);
+    EventBus.on("set_tooltip", (tooltip) => this.activeToolTip = tooltip);
   }
   hud;
+  hovers = /* @__PURE__ */ new Map();
   isHUDActive = true;
+  activeToolTip = "";
   setIsHUDActive(isHUDActive) {
     this.isHUDActive = isHUDActive;
   }
   addHUDColorButton(side, name, color, rect, handleClick) {
-    this.hud.sections.get(side).buttons.set(name, new ColorButton(color, this.hud.sections.get(side).rect, rect, this.input, handleClick));
+    this.hud.sections.get(side).buttons.set(name, new ColorButton(color, this.hud.sections.get(side).rect, rect, this.input));
+    this.hud.sections.get(side).buttons.get(name).setOnClick(handleClick);
+  }
+  addHUDImageButton(side, name, image, clip, rect, handleClick = null) {
+    this.hud.sections.get(side).buttons.set(name, new ImageButton(this.hud.sections.get(side).rect, rect, this.input, image, clip, handleClick));
+  }
+  addButtonHover(button, dRect, title, description = "") {
+    this.hovers.set(title, new UIHover(button.dRect, dRect, this.input, title, description));
+  }
+  getHUDButton(side, name) {
+    return this.hud.sections.get(side).buttons.get(name);
   }
   draw(ctx2) {
-    if (this.isHUDActive)
-      this.hud.draw(ctx2);
+    if (!this.isHUDActive) return;
+    this.hud.draw(ctx2);
+    this.hovers.forEach((hover) => hover.draw(ctx2));
+    if (this.activeToolTip === "") return;
+    ctx2.font = "16px MonogramFont";
+    const wordData = ctx2.measureText(this.activeToolTip);
+    ctx2.fillStyle = "black";
+    ctx2.fillRect(this.input.x - wordData.width / 2, this.input.y - 20, wordData.width + 10, 20);
+    ctx2.fillStyle = "white";
+    ctx2.textAlign = "center";
+    ctx2.textBaseline = "middle";
+    ctx2.fillText(this.activeToolTip, this.input.x + 5, this.input.y - 10);
+    this.activeToolTip = "";
   }
   update(dt) {
     this.hud.update(dt);
+    this.hovers.forEach((hover) => hover.update(dt));
   }
 };
 
@@ -708,74 +791,42 @@ var InputManager = class {
 
 // src/entities/Boulder.ts
 var OreBoulder = class {
-  constructor(rect, sprite, spriteClip) {
+  constructor(rect, sprite, spriteClip, name, maxHealth = 0, drop) {
     this.rect = rect;
     this.sprite = sprite;
     this.spriteClip = spriteClip;
+    this.name = name;
+    this.maxHealth = maxHealth;
+    this.drop = drop;
+    this.health = maxHealth;
   }
-  maxHealth = 0;
-  health = 0;
+  health;
   draw(ctx2) {
     ctx2.drawImage(this.sprite, ...this.spriteClip, this.rect.x, this.rect.y, this.rect.width, this.rect.height);
   }
-  update(dt) {
-  }
 };
 var CopperOreBoulder = class extends OreBoulder {
-  constructor(rect, input) {
+  constructor(rect) {
     const assetManager = AssetManager.getInstance();
     const sprite = assetManager.getObjectImage("copperOreBoulder").img;
     const spriteClip = assetManager.getObjectImage("copperOreBoulder").clip;
-    super(rect, sprite, spriteClip);
-    this.input = input;
-    this.health = this.maxHealth = 25;
-  }
-  update(dt) {
-    if (!this.input.isMouseOver(this.rect) || !this.input.clicked)
-      return;
-    this.health -= 1;
-    if (this.health === 0) {
-      EventBus.emit("ore_collected", this, new CopperOre());
-    }
-    this.input.clicked = false;
+    super(rect, sprite, spriteClip, "Copper Boulder", 25, new CopperOre());
   }
 };
 var GoldOreBoulder = class extends OreBoulder {
-  constructor(rect, input) {
+  constructor(rect) {
     const assetManager = AssetManager.getInstance();
     const sprite = assetManager.getObjectImage("goldOreBoulder").img;
     const spriteClip = assetManager.getObjectImage("goldOreBoulder").clip;
-    super(rect, sprite, spriteClip);
-    this.input = input;
-    this.health = this.maxHealth = 100;
-  }
-  update(dt) {
-    if (!this.input.isMouseOver(this.rect) || !this.input.clicked)
-      return;
-    this.health -= 1;
-    if (this.health === 0) {
-      EventBus.emit("ore_collected", this, new GoldOre());
-    }
-    this.input.clicked = false;
+    super(rect, sprite, spriteClip, "Gold Boulder", 100, new GoldOre());
   }
 };
 var CoalOreBoulder = class extends OreBoulder {
-  constructor(rect, input) {
+  constructor(rect) {
     const assetManager = AssetManager.getInstance();
     const sprite = assetManager.getObjectImage("coalOreBoulder").img;
     const spriteClip = assetManager.getObjectImage("coalOreBoulder").clip;
-    super(rect, sprite, spriteClip);
-    this.input = input;
-    this.health = this.maxHealth = 5;
-  }
-  update(dt) {
-    if (!this.input.isMouseOver(this.rect) || !this.input.clicked)
-      return;
-    this.health -= 1;
-    if (this.health === 0) {
-      EventBus.emit("ore_collected", this, new CoalOre());
-    }
-    this.input.clicked = false;
+    super(rect, sprite, spriteClip, "Coal Boulder", 5, new CoalOre());
   }
 };
 
@@ -812,13 +863,6 @@ var CaveScene = class extends GenericScene {
     { x: 300, y: 300, ore: null, spawnTime: 20 },
     { x: 460, y: 260, ore: null, spawnTime: 20 }
   ];
-  handleOreCollected = (oreBoulder, ore) => {
-    this.spots.find((spot) => spot.ore === oreBoulder).ore = null;
-    const oreBoulderIndex = this.ores.indexOf(oreBoulder);
-    delete this.ores[oreBoulderIndex];
-    this.ores.splice(oreBoulderIndex, 1);
-    this.player.addItem(ore, 5);
-  };
   draw(ctx2) {
     super.draw(ctx2);
     for (const ore of this.ores) ore.draw(ctx2);
@@ -835,7 +879,18 @@ var CaveScene = class extends GenericScene {
     }
   }
   update(dt) {
-    for (const ore of this.ores) ore.update(dt);
+    for (const ore of this.ores) {
+      if (this.input.isMouseOver(ore.rect)) {
+        EventBus.emit("set_tooltip", ore.name);
+        if (this.input.clicked) {
+          ore.health -= this.player.getPickaxeDamage();
+          if (ore.health <= 0) {
+            this.handleOreCollected(ore, ore.drop);
+          }
+          this.input.clicked = false;
+        }
+      }
+    }
     for (const spot of this.spots) {
       if (spot.ore) continue;
       if (spot.spawnTime < this.oreRespawnTime) {
@@ -845,9 +900,16 @@ var CaveScene = class extends GenericScene {
       this.generateOre(spot);
     }
   }
+  handleOreCollected = (oreBoulder, ore) => {
+    this.spots.find((spot) => spot.ore === oreBoulder).ore = null;
+    const oreBoulderIndex = this.ores.indexOf(oreBoulder);
+    delete this.ores[oreBoulderIndex];
+    this.ores.splice(oreBoulderIndex, 1);
+    this.player.addItem(ore, 5);
+  };
   generateOre(spot) {
     const oreType = this.pickRandomOreType();
-    const ore = new oreType(new Rect(spot.x, spot.y, 64, 64), this.input);
+    const ore = new oreType(new Rect(spot.x, spot.y, 64, 64));
     this.ores.push(ore);
     spot.ore = ore;
     spot.spawnTime = 0;
@@ -1187,13 +1249,21 @@ var Game = class {
     this.uiManager = new UIManager(input, this.player);
     this.sceneManager = new SceneManager(input, this.player);
     this.uiManager.addHUDColorButton("bottom", "cave", "purple", new Rect(10, 10, 30, 30), () => this.sceneManager.setScene("cave"));
+    this.uiManager.addButtonHover(this.uiManager.getHUDButton("bottom", "cave"), new Rect(-5, -20, 40, 20), "Cave");
     this.uiManager.addHUDColorButton("bottom", "forge", "black", new Rect(50, 10, 30, 30), () => this.sceneManager.setScene("forge"));
-    this.uiManager.addHUDColorButton("bottom", "quests", "green", new Rect(90, 10, 30, 30), () => this.sceneManager.setScene("quests"));
+    this.uiManager.addButtonHover(this.uiManager.getHUDButton("bottom", "forge"), new Rect(-8, -20, 46, 20), "Forge");
   }
   async start() {
     const assetManager = AssetManager.getInstance();
     await assetManager.loadAll();
     this.player.init();
+    this.uiManager.addHUDImageButton("top", "player_pickaxe", this.player.gear.pickaxe.sprite, this.player.gear.pickaxe.spriteClip, new Rect(10, 10, 30, 30));
+    this.uiManager.addButtonHover(
+      this.uiManager.getHUDButton("top", "player_pickaxe"),
+      new Rect(30, 0, 120, 35),
+      `${this.player.gear.pickaxe.name}`,
+      `Damage: ${this.player.gear.pickaxe.damage}`
+    );
     this.sceneManager.setScene("forge");
   }
   update(dt) {

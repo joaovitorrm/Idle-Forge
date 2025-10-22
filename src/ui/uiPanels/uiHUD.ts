@@ -5,9 +5,6 @@ import UILeft from "./uiLeft.js";
 import UIRight from "./uiRight.js";
 import UITop from "./uiTop.js";
 import type Player from "../../entities/Player.js";
-import { EventBus } from "../../core/EventBus.js";
-import type { Item } from "../../entities/Item.js";
-import type Rect from "../../util/rect.js";
 
 type HUDSection = "left" | "right" | "top" | "bottom";
 

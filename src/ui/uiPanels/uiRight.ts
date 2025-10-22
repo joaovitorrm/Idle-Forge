@@ -98,7 +98,7 @@ export default class UIRight extends UIGeneric {
                     this.buttons.set(i[0] + "x" + amount,
                         new LabelButton("x" + amount, "white", "black", inventorySlot,
                             new Rect(inventorySlot.width - 30, inventorySlot.height / 3 * index, 30, inventorySlot.height / 3), this.input, () => {
-                                this.input.clicked = false; EventBus.emit("hold_item", i[1].item, amount);
+                                EventBus.emit("hold_item", i[1].item, amount);
                             }));
                 })
             }

@@ -62,7 +62,7 @@ export abstract class Fuel extends Item {
     }
 }
 
-export abstract class Tool extends Item {
+export abstract class Pickaxe extends Item {
     constructor(
         name: string, 
         sprite: HTMLImageElement, 
@@ -143,7 +143,7 @@ export class pSwordHead extends Plate {
     }
 }
 
-export class StarterPickaxe extends Tool {
+export class StarterPickaxe extends Pickaxe {
     constructor() {
         const assetManager = AssetManager.getInstance();
         const { img, clip } = assetManager.getObjectImage("stonePickaxe")!;

@@ -6,7 +6,7 @@ import { AssetManager } from "../core/AssetManager.js";
 import Rect from "../util/rect.js";
 import type Player from "../entities/Player.js";
 import { EventBus } from "../core/EventBus.js";
-import type { Ore } from "../entities/Item.js";
+import type { Fuel, Ore } from "../entities/Item.js";
 
 interface Spot {
     x: number;
@@ -37,17 +37,7 @@ export default class CaveScene extends GenericScene {
         super(input, player, sprite!);
     }
 
-    private handleOreCollected = (oreBoulder: OreBoulder, ore: Ore) => {
-        this.spots.find(spot => spot.ore === oreBoulder)!.ore = null;
-
-        const oreBoulderIndex = this.ores.indexOf(oreBoulder);
-        delete this.ores[oreBoulderIndex];
-        this.ores.splice(oreBoulderIndex, 1);
-
-        this.player.addItem(ore, 5);
-    };
-
-    draw(ctx: CanvasRenderingContext2D): void {
+    public draw(ctx: CanvasRenderingContext2D): void {
         super.draw(ctx);
 
         for (const ore of this.ores) ore.draw(ctx);
@@ -66,8 +56,19 @@ export default class CaveScene extends GenericScene {
         }
     }
 
-    update(dt: number): void {
-        for (const ore of this.ores) ore.update(dt);
+    public update(dt: number): void {
+        for (const ore of this.ores) {
+            if (this.input.isMouseOver(ore.rect)) {
+                EventBus.emit("set_tooltip", ore.name);
+                if (this.input.clicked) {
+                    ore.health -= this.player.getPickaxeDamage();
+                    if (ore.health <= 0) {
+                        this.handleOreCollected(ore, ore.drop);
+                    }
+                    this.input.clicked = false;
+                }
+            }
+        }
 
         for (const spot of this.spots) {
             if (spot.ore) continue;
@@ -80,15 +81,25 @@ export default class CaveScene extends GenericScene {
         }
     }
 
-    generateOre(spot: Spot): void {
+    private handleOreCollected = (oreBoulder: OreBoulder, ore: Ore | Fuel) => {
+        this.spots.find(spot => spot.ore === oreBoulder)!.ore = null;
+
+        const oreBoulderIndex = this.ores.indexOf(oreBoulder);
+        delete this.ores[oreBoulderIndex];
+        this.ores.splice(oreBoulderIndex, 1);
+
+        this.player.addItem(ore, 5);
+    };
+
+    private generateOre(spot: Spot): void {
         const oreType = this.pickRandomOreType();
-        const ore = new oreType(new Rect(spot.x, spot.y, 64, 64), this.input);
+        const ore = new oreType(new Rect(spot.x, spot.y, 64, 64));
         this.ores.push(ore);
         spot.ore = ore;
         spot.spawnTime = 0;
     }
 
-    private pickRandomOreType(): new (rect: Rect, input: InputManager) => OreBoulder {
+    private pickRandomOreType(): new (rect: Rect) => OreBoulder {
         const total = this.canSpawn.reduce((sum, o) => sum + o.chance, 0);
         const rand = Math.random() * total;
 
@@ -103,7 +114,7 @@ export default class CaveScene extends GenericScene {
         return this.canSpawn[0].type; // fallback
     }
 
-    enter(): void {
+    public enter(): void {
         EventBus.on("ore_collected", this.handleOreCollected);
 
         const enteredTime = this.exitedTime === 0 ? 0 : (Date.now() - this.exitedTime) / 1000;
@@ -119,7 +130,7 @@ export default class CaveScene extends GenericScene {
         }
     }
 
-    exit(): void {
+    public exit(): void {
         this.exitedTime = Date.now();
         EventBus.off("ore_collected", this.handleOreCollected);
     }
