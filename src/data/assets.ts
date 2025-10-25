@@ -6,6 +6,7 @@ import ore from "../assets/images/items/ore.png";
 import weapons from "../assets/images/items/weapons.png";
 import tools from "../assets/images/items/tools.png";
 import plates from "../assets/images/items/plates.png";
+import pieces from "../assets/images/items/pieces.png";
 
 export const backgroundAssets = {
     caveBackground,
@@ -32,4 +33,10 @@ export const objectsAssets = {
     pUnion : {path: plates, clip: [32, 0, 32, 32]},
     pSwordHandler : {path: plates, clip: [32*2, 0, 32, 32]},
     pSwordHead : {path: plates, clip: [0, 32*2, 32, 32]},
+    copperPickaxeHead : {path: pieces, clip: [0, 0, 32, 32]},
+    copperHandle : {path: pieces, clip: [0, 32, 32, 32]},
+    copperUnion : {path: pieces, clip: [0, 32*2, 32, 32]},
+    goldPickaxeHead : {path: pieces, clip: [32, 0, 32, 32]},
+    goldHandle : {path: pieces, clip: [32, 32, 32, 32]},
+    goldUnion : {path: pieces, clip: [32, 32*2, 32, 32]},
 }

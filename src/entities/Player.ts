@@ -1,16 +1,28 @@
 import { EventBus } from "../core/EventBus.js";
 import Inventory from "./Inventory.js";
-import { Fuel, type Item, Ore, Pickaxe, StarterPickaxe } from "./Item.js";
+import { handlePlate, type Item, Ore, Pickaxe, pickaxeHeadPlate, Piece, Plate, StarterPickaxe, swordHandlerPlate, swordHeadPlate, unionPlate } from "./Item.js";
 
-type CanHold = Fuel | Ore;
+type CanHold = Ore | Plate;
 
 interface Gear {
     "pickaxe": Pickaxe | null,
 }
 
+export interface Inventories {
+    ores: Inventory<Ore>;
+    plates: Inventory<Plate>;
+    pieces: Inventory<Piece>;
+    //tools: Inventory<Tool>;
+}
+
 export default class Player {
     private money: number = 0;
-    private inventory: Inventory = new Inventory();
+    private inventories : Inventories = {
+        ores : new Inventory<Ore>([Ore], "ores"),
+        plates : new Inventory<Plate>([Plate], "plates"),
+        pieces : new Inventory<Piece>([Piece], "pieces"),
+        //tools : new Inventory<Tool>([Tool], "tools")
+    };
     public gear: Gear = {
         "pickaxe": null,
     };
@@ -19,15 +31,20 @@ export default class Player {
 
 
     init() {
-        this.inventory.init();
-
         if (localStorage.getItem("playerData")) {
             const playerData = JSON.parse(localStorage.getItem("playerData")!);
             this.money = playerData.money;
             this.gear = playerData.gear;
         } else {
             this.gear = { "pickaxe": new StarterPickaxe() };
+            this.inventories.plates.addItem(new pickaxeHeadPlate(), 1);
+            this.inventories.plates.addItem(new handlePlate(), 1);
+            this.inventories.plates.addItem(new unionPlate(), 1);
+            this.inventories.plates.addItem(new swordHeadPlate(), 1);
+            this.inventories.plates.addItem(new swordHandlerPlate(), 1);
         }
+
+        Object.values(this.inventories).forEach(inventory => inventory.init());
 
         this.initEvents();
     }
@@ -45,6 +62,16 @@ export default class Player {
         })
     }
 
+    addItem(item: Item, amount: number): void {
+        if (item instanceof Ore) this.inventories.ores.addItem(item, amount);
+        if (item instanceof Plate) this.inventories.plates.addItem(item, amount);
+    }
+
+    removeItem(item: Item, amount: number): void {
+        if (item instanceof Ore) this.inventories.ores.removeItem(item, amount);
+        if (item instanceof Plate) this.inventories.plates.removeItem(item, amount);
+    }
+
     getMoney(): number {
         return this.money;
     }
@@ -53,23 +80,17 @@ export default class Player {
         this.money = money;
     }
 
-    getInventory(): Map<string, { item: Item, amount: number }> {
-        return this.inventory.getItems();
-    }
-
-    addItem(item: Item, amount: number): void {
-        this.inventory.addItem(item, amount);
-    }
-
-    removeItem(item: Item, amount: number): void {
-        this.inventory.removeItem(item, amount);
-    }
-
-    getPickaxeDamage(): number {
-        return this.gear.pickaxe!.damage;
+    getInventory(key : keyof typeof this.inventories): ReadonlyMap<string, { item: Item, amount: number }> {
+        return this.inventories[key].getItems();
     }
 
     getItemAmount(item: Item): number {
-        return this.inventory.getItemAmount(item);
+        if (item instanceof Ore) return this.inventories.ores.getItemAmount(item);
+        if (item instanceof Plate) return this.inventories.plates.getItemAmount(item);
+        return 0;
+    }
+
+    getPickaxeDamage(): number {
+        return this.gear.pickaxe?.damage ?? 0;
     }
 }

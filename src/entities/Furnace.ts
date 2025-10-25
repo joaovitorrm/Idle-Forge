@@ -1,7 +1,7 @@
 import { AssetManager } from "../core/AssetManager.js";
 import type Rect from "../util/rect.js";
 import { GenericObject } from "./GenericObject.js";
-import { CoalOre, CopperOre, Fuel, GoldOre, Item, Ore, type OreType } from "./Item.js";
+import { CoalOre, CopperOre, Fuel, GoldOre, Item, Melt, Ore, type OreType } from "./Item.js";
 
 export default class Furnace extends GenericObject {
 
@@ -16,12 +16,12 @@ export default class Furnace extends GenericObject {
     private animatedSprites: Map<number, { img: HTMLImageElement, clip: [number, number, number, number] }>;
 
     private fuel: { item: Fuel, amount: number } | null = null;
-    private output: { item: Ore, amount: number } | null = null;
+    private output: { item: Melt, amount: number } | null = null;
 
     private outputMelt : number = 0;
 
-    private maxSpaceAmount : number = 30;
-    public content : { ore : Ore, amount : number}[] = [];
+    public maxSpaceAmount : number = 30;
+    public content : { ore : Melt, amount : number}[] = [];
 
     constructor(rect: Rect) {
 
@@ -100,7 +100,7 @@ export default class Furnace extends GenericObject {
         return true;
     }
 
-    addOutput(output: Ore, amount: number) : boolean {
+    addOutput(output: Melt, amount: number) : boolean {
         if (this.output !== null) {
             if (this.output.item.name === output.name) {
                 this.output.amount += amount;
@@ -113,7 +113,7 @@ export default class Furnace extends GenericObject {
         return true;
     }
 
-    private addInnerContent(ore : Ore, amount : number) {
+    private addInnerContent(ore : Melt, amount : number) {
         for (const c of this.content) {
             if (c.ore.name === ore.name) {
                 c.amount += amount;
@@ -135,7 +135,7 @@ export default class Furnace extends GenericObject {
         return this.fuel;
     }
 
-    getOutput(): { item: Ore, amount: number } | null {
+    getOutput(): { item: Melt, amount: number } | null {
         return this.output;
     }
 }

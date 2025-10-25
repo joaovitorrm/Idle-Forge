@@ -6,7 +6,7 @@ import { Button, ColorButton, ImageButton } from "./uiElements/Button.js";
 import UIHover from "./uiElements/uiHover.js";
 import { uiHUD } from "./uiPanels/uiHUD.js";
 
-type HUDSection = "left" | "right" | "top" | "bottom";
+type HUDSection = "right" | "top" | "bottom";
 
 export class UIManager {
 
@@ -47,19 +47,36 @@ export class UIManager {
         this.hud.draw(ctx);
         this.hovers.forEach((hover) => hover.draw(ctx));
 
+        this.drawToolTip(ctx);
+        this.drawHoldingItem(ctx);
+    }
 
+    private drawHoldingItem(ctx: CanvasRenderingContext2D) {
+        if (this.player.holdingItem) {
+            ctx.drawImage(this.player.holdingItem!.item.sprite, ...this.player.holdingItem!.item.spriteClip, this.input.x - 32, this.input.y - 32, 64, 64);
+
+            ctx.fillStyle = "white";
+            ctx.font = "24px MonogramFont";
+
+            if (this.player.holdingItem!.amount === 0) return;
+
+            ctx.fillText(this.player.holdingItem!.amount.toString(), this.input.x + 16, this.input.y + 16);
+        }
+    }
+
+    private drawToolTip(ctx: CanvasRenderingContext2D) {
         if (this.activeToolTip === "") return;
 
         ctx.font = "16px MonogramFont";
         const wordData = ctx.measureText(this.activeToolTip);
 
         ctx.fillStyle = "black";
-        ctx.fillRect(this.input.x - wordData.width / 2, this.input.y - 20, wordData.width + 10, 20);
+        ctx.fillRect(this.input.x - wordData.width / 2 - 6, this.input.y - 20, wordData.width + 10, 20);
 
         ctx.fillStyle = "white";        
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(this.activeToolTip, this.input.x + 5, this.input.y - 10);
+        ctx.fillText(this.activeToolTip, this.input.x, this.input.y - 10);
 
         this.activeToolTip = "";
     }

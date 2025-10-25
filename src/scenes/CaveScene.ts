@@ -6,7 +6,7 @@ import { AssetManager } from "../core/AssetManager.js";
 import Rect from "../util/rect.js";
 import type Player from "../entities/Player.js";
 import { EventBus } from "../core/EventBus.js";
-import type { Fuel, Ore } from "../entities/Item.js";
+import type { Fuel, Melt, Ore } from "../entities/Item.js";
 
 interface Spot {
     x: number;
@@ -20,7 +20,7 @@ export default class CaveScene extends GenericScene {
 
     public ores: OreBoulder[] = [];
 
-    public canSpawn = [{ type: CoalOreBoulder, chance: 0.5 }, { type: CopperOreBoulder, chance: 0.4 }, { type: GoldOreBoulder, chance: 0.1 }] as const;
+    public canSpawn = [{ type: CoalOreBoulder, chance: 0.49 }, { type: CopperOreBoulder, chance: 0.46 }, { type: GoldOreBoulder, chance: 0.05 }] as const;
 
     public spots: Spot[] = [
         { x: 80, y: 340, ore: null, spawnTime: 20 },
@@ -57,6 +57,12 @@ export default class CaveScene extends GenericScene {
     }
 
     public update(dt: number): void {
+
+        if (this.player.holdingItem && this.input.clicked) {
+            this.player.holdingItem = null;
+            this.input.clicked = false;
+        }
+
         for (const ore of this.ores) {
             if (this.input.isMouseOver(ore.rect)) {
                 EventBus.emit("set_tooltip", ore.name);
@@ -73,22 +79,19 @@ export default class CaveScene extends GenericScene {
         for (const spot of this.spots) {
             if (spot.ore) continue;
 
-            if (spot.spawnTime < this.oreRespawnTime) {
-                spot.spawnTime += dt;
-                continue;
-            }
-            this.generateOre(spot);
+            spot.spawnTime += dt;
+            if (spot.spawnTime >= this.oreRespawnTime) this.generateOre(spot);
         }
     }
 
-    private handleOreCollected = (oreBoulder: OreBoulder, ore: Ore | Fuel) => {
+    private handleOreCollected = (oreBoulder: OreBoulder, ore: Ore) => {
         this.spots.find(spot => spot.ore === oreBoulder)!.ore = null;
 
         const oreBoulderIndex = this.ores.indexOf(oreBoulder);
         delete this.ores[oreBoulderIndex];
         this.ores.splice(oreBoulderIndex, 1);
 
-        this.player.addItem(ore, 5);
+        this.player.addItem(ore, 1);
     };
 
     private generateOre(spot: Spot): void {

@@ -9,7 +9,7 @@ export default class QuestsScene extends GenericScene {
         const assetManager = AssetManager.getInstance();
         const sprite = assetManager.getBackgroundImage("questsBackground")!;
 
-        super(input, player, sprite)
+        super(input, player, sprite);
     }
 
     draw(ctx : CanvasRenderingContext2D) : void {

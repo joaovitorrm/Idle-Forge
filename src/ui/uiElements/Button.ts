@@ -35,6 +35,7 @@ export class LabelButton extends Button {
         protected label: string,
         protected labelColor: string,
         protected backgroundColor: string,
+        protected fontSize: number,
         sRect: Rect,
         dRect: Rect,
         input: InputManager,
@@ -46,7 +47,8 @@ export class LabelButton extends Button {
     draw(ctx: CanvasRenderingContext2D): void {
         ctx.fillStyle = this.backgroundColor;
         ctx.fillRect(this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
-
+        
+        ctx.font = `${this.fontSize}px MonogramFont`;
         ctx.fillStyle = this.labelColor;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";

@@ -48,7 +48,10 @@ var ore_default = "./assets/ore-42GGJZ2H.png";
 var tools_default = "./assets/tools-3GRJJX3W.png";
 
 // src/assets/images/items/plates.png
-var plates_default = "./assets/plates-IRE2YA32.png";
+var plates_default = "./assets/plates-6DFZ4TGJ.png";
+
+// src/assets/images/items/pieces.png
+var pieces_default = "./assets/pieces-G74WCXK7.png";
 
 // src/data/assets.ts
 var backgroundAssets = {
@@ -74,7 +77,13 @@ var objectsAssets = {
   pHandle: { path: plates_default, clip: [0, 0, 32, 32] },
   pUnion: { path: plates_default, clip: [32, 0, 32, 32] },
   pSwordHandler: { path: plates_default, clip: [32 * 2, 0, 32, 32] },
-  pSwordHead: { path: plates_default, clip: [0, 32 * 2, 32, 32] }
+  pSwordHead: { path: plates_default, clip: [0, 32 * 2, 32, 32] },
+  copperPickaxeHead: { path: pieces_default, clip: [0, 0, 32, 32] },
+  copperHandle: { path: pieces_default, clip: [0, 32, 32, 32] },
+  copperUnion: { path: pieces_default, clip: [0, 32 * 2, 32, 32] },
+  goldPickaxeHead: { path: pieces_default, clip: [32, 0, 32, 32] },
+  goldHandle: { path: pieces_default, clip: [32, 32, 32, 32] },
+  goldUnion: { path: pieces_default, clip: [32, 32 * 2, 32, 32] }
 };
 
 // src/core/AssetManager.ts
@@ -125,13 +134,17 @@ var AssetManager = class _AssetManager {
 };
 
 // src/entities/Item.ts
-var Item = class {
-  constructor(name, sprite, spriteClip) {
+var Item = class _Item {
+  constructor(name, spriteKey) {
     this.name = name;
-    this.sprite = sprite;
-    this.spriteClip = spriteClip;
+    this.spriteKey = spriteKey;
+    const assetManager = AssetManager.getInstance();
+    const { img, clip } = assetManager.getObjectImage(spriteKey);
+    this.sprite = img;
+    this.spriteClip = clip;
   }
-  spriteKey = "";
+  sprite;
+  spriteClip;
   toJSON() {
     return {
       name: this.name,
@@ -139,145 +152,249 @@ var Item = class {
       spriteClip: this.spriteClip
     };
   }
-  static fromJSON(name) {
-    const registry = {
-      "stonePickaxe": StarterPickaxe,
-      "copperOre": CopperOre,
-      "goldOre": GoldOre,
-      "coalOre": CoalOre
-    };
-    const ClassRef = registry[name];
-    if (!ClassRef) throw new Error(`Item type "${name}" n\xE3o registrado.`);
+  static registry = {};
+  static register(key, ctor) {
+    _Item.registry[key] = ctor;
+  }
+  static fromJSON(data) {
+    const ClassRef = _Item.registry[data.name];
+    if (!ClassRef) throw new Error(`Item type "${data.name}" n\xE3o registrado.`);
     const instance = new ClassRef();
+    instance.spriteKey = data.spriteKey;
+    instance.spriteClip = data.spriteClip;
     return instance;
   }
 };
 var Ore = class extends Item {
-  constructor(name, sprite, spriteClip, tier, outputType, meltTime) {
-    super(name, sprite, spriteClip);
+  constructor(name, spriteKey, tier) {
+    super(name, spriteKey);
     this.tier = tier;
-    this.outputType = outputType;
-    this.meltTime = meltTime;
   }
 };
-var Fuel = class extends Item {
-  constructor(name, sprite, spriteClip, tier, burnTime) {
-    super(name, sprite, spriteClip);
-    this.tier = tier;
+var Fuel = class extends Ore {
+  constructor(name, spriteKey, tier, burnTime) {
+    super(name, spriteKey, tier);
     this.burnTime = burnTime;
   }
 };
+var Melt = class extends Ore {
+  constructor(name, spriteKey, tier, outputType, meltTime, timeToSolidify) {
+    super(name, spriteKey, tier);
+    this.outputType = outputType;
+    this.meltTime = meltTime;
+    this.timeToSolidify = timeToSolidify;
+  }
+};
 var Pickaxe = class extends Item {
-  constructor(name, sprite, spriteClip, damage) {
-    super(name, sprite, spriteClip);
+  constructor(name, spriteKey, damage) {
+    super(name, spriteKey);
     this.damage = damage;
   }
 };
+var Plate = class extends Item {
+  constructor(name, spriteKey, oreNeededAmount) {
+    super(name, spriteKey);
+    this.oreNeededAmount = oreNeededAmount;
+  }
+};
+var Piece = class extends Item {
+  constructor(name, spriteKey) {
+    super(name, spriteKey);
+  }
+};
+var pickaxeHeadPiece = class extends Piece {
+  constructor(material) {
+    const name = `${material.name.split(" ")[0]} Pickaxe Head`;
+    const spriteKey = `${material.name.split(" ")[0].toLocaleLowerCase}PickaxeHead`;
+    super(name, spriteKey);
+    this.material = material;
+  }
+};
+var pickaxeHeadPlate = class extends Plate {
+  constructor() {
+    super("Pickaxe Head Plate", "pPickaxeHead", 3);
+  }
+  getPiece(ore) {
+    return new pickaxeHeadPiece(ore);
+  }
+};
+Item.register("Pickaxe Head Plate", pickaxeHeadPlate);
+var handlePlate = class extends Plate {
+  constructor() {
+    super("Handle Plate", "pHandle", 2);
+  }
+};
+Item.register("Handle Plate", handlePlate);
+var unionPlate = class extends Plate {
+  constructor() {
+    super("Union Plate", "pUnion", 3);
+  }
+};
+Item.register("Union Plate", unionPlate);
+var swordHandlerPlate = class extends Plate {
+  constructor() {
+    super("Sword Handler Plate", "pSwordHandler", 1);
+  }
+};
+Item.register("Sword Handler Plate", swordHandlerPlate);
+var swordHeadPlate = class extends Plate {
+  constructor() {
+    super("Sword Head Plate", "pSwordHead", 3);
+  }
+};
+Item.register("Sword Head Plate", swordHeadPlate);
 var StarterPickaxe = class extends Pickaxe {
   constructor() {
-    const assetManager = AssetManager.getInstance();
-    const { img, clip } = assetManager.getObjectImage("stonePickaxe");
-    super("Stone Pickaxe", img, clip, 1);
-    this.spriteKey = "stonePickaxe";
+    super("Stone Pickaxe", "stonePickaxe", 1);
   }
   getDamage() {
     return this.damage;
   }
 };
-var CopperOre = class extends Ore {
+Item.register("Stone Pickaxe", StarterPickaxe);
+var CopperOre = class extends Melt {
   constructor() {
-    const assetManager = AssetManager.getInstance();
-    const { img, clip } = assetManager.getObjectImage("copperOre");
-    super("Copper Ore", img, clip, 1, "copper", 5);
-    this.spriteKey = "copperOre";
+    super("Copper Ore", "copperOre", 1, "copper", 5, 10);
   }
 };
-var GoldOre = class extends Ore {
+Item.register("Copper Ore", CopperOre);
+var GoldOre = class extends Melt {
   constructor() {
-    const assetManager = AssetManager.getInstance();
-    const { img, clip } = assetManager.getObjectImage("goldOre");
-    super("Gold Ore", img, clip, 2, "gold", 20);
-    this.spriteKey = "goldOre";
+    super("Gold Ore", "goldOre", 2, "gold", 20, 15);
   }
 };
+Item.register("Gold Ore", GoldOre);
 var CoalOre = class extends Fuel {
   constructor() {
-    const assetManager = AssetManager.getInstance();
-    const { img, clip } = assetManager.getObjectImage("coalOre");
-    super("Coal Ore", img, clip, 1, 10);
-    this.spriteKey = "coalOre";
+    super("Coal Ore", "coalOre", 1, 10);
   }
 };
+Item.register("Coal Ore", CoalOre);
+var CopperPickaxeHead = class extends Piece {
+  constructor() {
+    super("Copper Pickaxe Head", "copperPickaxeHead");
+  }
+};
+Item.register("Copper Pickaxe Head", CopperPickaxeHead);
+var CopperHandle = class extends Piece {
+  constructor() {
+    super("Copper Handle", "copperHandle");
+  }
+};
+Item.register("Copper Handle", CopperHandle);
+var CopperUnion = class extends Piece {
+  constructor() {
+    super("Copper Union", "copperUnion");
+  }
+};
+Item.register("Copper Union", CopperUnion);
+var GoldPickaxeHead = class extends Piece {
+  constructor() {
+    super("Gold Pickaxe Head", "goldPickaxeHead");
+  }
+};
+Item.register("Gold Pickaxe Head", GoldPickaxeHead);
+var GoldHandle = class extends Piece {
+  constructor() {
+    super("Gold Handle", "goldHandle");
+  }
+};
+Item.register("Gold Handle", GoldHandle);
+var GoldUnion = class extends Piece {
+  constructor() {
+    super("Gold Union", "goldUnion");
+  }
+};
+Item.register("Gold Union", GoldUnion);
 
 // src/entities/Inventory.ts
 var Inventory = class {
-  inventory = /* @__PURE__ */ new Map();
-  constructor() {
+  constructor(allowedBaseClasses, storageKey = "inventory") {
+    this.allowedBaseClasses = allowedBaseClasses;
+    this.storageKey = storageKey;
   }
+  inventory = /* @__PURE__ */ new Map();
   addItem(item, amount) {
+    if (this.allowedBaseClasses) {
+      const isAllowed = this.allowedBaseClasses.some((base) => item instanceof base);
+      if (!isAllowed) {
+        throw new Error(`Tipo de item ${item.constructor.name} n\xE3o permitido neste invent\xE1rio.`);
+      }
+    }
     const existing = this.inventory.get(item.name);
-    const newAmount = existing ? existing.amount + amount : amount;
+    const newAmount = (existing?.amount ?? 0) + amount;
     this.inventory.set(item.name, { item, amount: newAmount });
+    EventBus.emit("inventory:update");
     this.save();
   }
   getItems() {
     return this.inventory;
   }
-  getItemAmount(item) {
+  removeItem(item, amount) {
     const existing = this.inventory.get(item.name);
-    return existing ? existing.amount : 0;
+    if (!existing) return;
+    const newAmount = existing.amount - amount;
+    if (newAmount > 0) this.inventory.set(item.name, { item, amount: newAmount });
+    else this.inventory.delete(item.name);
+    EventBus.emit("inventory:update");
+    this.save();
+  }
+  getItemAmount(item) {
+    return this.inventory.get(item.name)?.amount ?? 0;
   }
   save() {
-    const plainInventory = Array.from(this.inventory.entries()).map(([name, { item, amount }]) => ({
-      name,
+    const plain = Array.from(this.inventory.values()).map(({ item, amount }) => ({
       itemData: item.toJSON(),
       amount
     }));
-    localStorage.setItem("inventory", JSON.stringify(plainInventory));
+    localStorage.setItem(this.storageKey, JSON.stringify(plain));
   }
   init() {
-    const stored = localStorage.getItem("inventory");
+    const stored = localStorage.getItem(this.storageKey);
     if (!stored) return;
     try {
       const data = JSON.parse(stored);
       this.inventory = new Map(
-        data.map(({ name, itemData, amount }) => {
-          const item = this.restoreItem(itemData.spriteKey);
-          return [name, { item, amount }];
+        data.map(({ itemData, amount }) => {
+          const item = Item.fromJSON(itemData);
+          return [item.name, { item, amount }];
         })
       );
     } catch (err) {
-      console.error("Falha ao carregar invent\xE1rio:", err);
+      console.error(`Falha ao carregar invent\xE1rio (${this.storageKey}):`, err);
       this.inventory.clear();
     }
-  }
-  restoreItem(data) {
-    return Item.fromJSON(data);
-  }
-  removeItem(item, amount) {
-    this.inventory.set(item.name, { item, amount: this.getItemAmount(item) - amount });
-    this.save();
   }
 };
 
 // src/entities/Player.ts
 var Player = class {
   money = 0;
-  inventory = new Inventory();
+  inventories = {
+    ores: new Inventory([Ore], "ores"),
+    plates: new Inventory([Plate], "plates"),
+    pieces: new Inventory([Piece], "pieces")
+    //tools : new Inventory<Tool>([Tool], "tools")
+  };
   gear = {
     "pickaxe": null
   };
   holdingItem = null;
   //public unlockedPlates : Map<string, Plate> = new Map();
   init() {
-    this.inventory.init();
     if (localStorage.getItem("playerData")) {
       const playerData = JSON.parse(localStorage.getItem("playerData"));
       this.money = playerData.money;
       this.gear = playerData.gear;
     } else {
       this.gear = { "pickaxe": new StarterPickaxe() };
+      this.inventories.plates.addItem(new pickaxeHeadPlate(), 1);
+      this.inventories.plates.addItem(new handlePlate(), 1);
+      this.inventories.plates.addItem(new unionPlate(), 1);
+      this.inventories.plates.addItem(new swordHeadPlate(), 1);
+      this.inventories.plates.addItem(new swordHandlerPlate(), 1);
     }
+    Object.values(this.inventories).forEach((inventory) => inventory.init());
     this.initEvents();
   }
   initEvents() {
@@ -290,26 +407,30 @@ var Player = class {
       this.holdingItem = { item, amount };
     });
   }
+  addItem(item, amount) {
+    if (item instanceof Ore) this.inventories.ores.addItem(item, amount);
+    if (item instanceof Plate) this.inventories.plates.addItem(item, amount);
+  }
+  removeItem(item, amount) {
+    if (item instanceof Ore) this.inventories.ores.removeItem(item, amount);
+    if (item instanceof Plate) this.inventories.plates.removeItem(item, amount);
+  }
   getMoney() {
     return this.money;
   }
   setMoney(money) {
     this.money = money;
   }
-  getInventory() {
-    return this.inventory.getItems();
-  }
-  addItem(item, amount) {
-    this.inventory.addItem(item, amount);
-  }
-  removeItem(item, amount) {
-    this.inventory.removeItem(item, amount);
-  }
-  getPickaxeDamage() {
-    return this.gear.pickaxe.damage;
+  getInventory(key) {
+    return this.inventories[key].getItems();
   }
   getItemAmount(item) {
-    return this.inventory.getItemAmount(item);
+    if (item instanceof Ore) return this.inventories.ores.getItemAmount(item);
+    if (item instanceof Plate) return this.inventories.plates.getItemAmount(item);
+    return 0;
+  }
+  getPickaxeDamage() {
+    return this.gear.pickaxe?.damage ?? 0;
   }
 };
 
@@ -336,15 +457,17 @@ var Button = class {
   }
 };
 var LabelButton = class extends Button {
-  constructor(label, labelColor, backgroundColor, sRect, dRect, input, onClick = null) {
+  constructor(label, labelColor, backgroundColor, fontSize, sRect, dRect, input, onClick = null) {
     super(sRect, dRect, input, onClick);
     this.label = label;
     this.labelColor = labelColor;
     this.backgroundColor = backgroundColor;
+    this.fontSize = fontSize;
   }
   draw(ctx2) {
     ctx2.fillStyle = this.backgroundColor;
     ctx2.fillRect(this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
+    ctx2.font = `${this.fontSize}px MonogramFont`;
     ctx2.fillStyle = this.labelColor;
     ctx2.textAlign = "center";
     ctx2.textBaseline = "middle";
@@ -515,41 +638,137 @@ var UIBottom = class extends UIGeneric {
   }
 };
 
-// src/ui/uiPanels/uiLeft.ts
-var UILeft = class extends UIGeneric {
-  isReduced = false;
-  constructor(input, player) {
-    const rect = new Rect(
-      HUDConfig.left.xRatio * GameConfig.GAME_WIDTH,
-      HUDConfig.left.yRatio * GameConfig.GAME_HEIGHT,
-      HUDConfig.left.widthRatio * GameConfig.GAME_WIDTH,
-      HUDConfig.left.heightRatio * GameConfig.GAME_HEIGHT
-    );
-    super(rect, input, player);
-    this.resize();
-    this.buttons.set("reduce", new ColorButton("white", this.rect, new Rect(0, 0, 30, 30), this.input, () => this.resize()));
+// src/ui/uiPanels/uiInventory.ts
+var UIInventory = class {
+  constructor(input, player, sRect, dRect, offsetX = 0, offsetY = 0) {
+    this.input = input;
+    this.player = player;
+    this.sRect = sRect;
+    this.dRect = dRect;
+    this.offsetX = offsetX;
+    this.offsetY = offsetY;
   }
-  resize() {
-    if (!this.isReduced) {
-      if (this.buttons.has("reduce"))
-        this.buttons.get("reduce").dRect.x -= this.rect.width;
-      this.rect.width = 0;
-      this.isReduced = true;
-    } else {
-      this.rect.width = GameConfig.GAME_WIDTH * HUDConfig.left.widthRatio;
-      if (this.buttons.has("reduce"))
-        this.buttons.get("reduce").dRect.x += this.rect.width;
-      this.isReduced = false;
-    }
+};
+var OreInventory = class extends UIInventory {
+  slots = [];
+  constructor(input, player, sRect, dRect, offsetX = 0, offsetY = 0) {
+    super(input, player, sRect, dRect, offsetX, offsetY);
+    this.setItems();
+    EventBus.on("inventory:update", () => this.setItems());
   }
   draw(ctx2) {
-    if (!this.isShown) return;
-    ctx2.fillStyle = "yellow";
-    ctx2.fillRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
-    for (const [_, button] of this.buttons) button.draw(ctx2);
+    this.slots.forEach((slot) => {
+      ctx2.fillStyle = "white";
+      ctx2.textAlign = "left";
+      ctx2.textBaseline = "bottom";
+      ctx2.font = "22px MonogramFont";
+      ctx2.fillText(slot.name, slot.rect.x, slot.rect.y);
+      ctx2.fillText(slot.amount, slot.rect.x, slot.rect.y + slot.rect.height);
+      ctx2.drawImage(slot.sprite, ...slot.spriteClip, slot.rect.x, slot.rect.y, 70, 70);
+      slot.holdBtns.get("x1").draw(ctx2);
+      slot.holdBtns.get("x5").draw(ctx2);
+      slot.holdBtns.get("x15").draw(ctx2);
+    });
   }
   update(dt) {
-    for (const [_, button] of this.buttons) button.update(dt);
+    if (this.player.getInventory("ores").size !== this.slots.length) {
+      this.setItems();
+    }
+    this.slots.forEach((slot) => {
+      slot.holdBtns.get("x1").update(dt);
+      slot.holdBtns.get("x5").update(dt);
+      slot.holdBtns.get("x15").update(dt);
+    });
+  }
+  setItems() {
+    const items = this.player.getInventory("ores");
+    this.slots = [];
+    if (items.size > 0) {
+      let c = 0;
+      items.forEach((item) => {
+        const slotRect = new Rect(this.sRect.x + this.offsetX, this.sRect.y + this.offsetY + 90 * c, 100, 60);
+        this.slots.push({
+          name: item.item.name,
+          amount: item.amount.toString(),
+          sprite: item.item.sprite,
+          spriteClip: item.item.spriteClip,
+          rect: slotRect,
+          holdBtns: /* @__PURE__ */ new Map(
+            [
+              ["x1", new LabelButton(
+                "x1",
+                "white",
+                "black",
+                16,
+                slotRect,
+                new Rect(slotRect.width - 30, 0, 30, 20),
+                this.input,
+                () => EventBus.emit("hold_item", item.item, 1)
+              )],
+              ["x5", new LabelButton(
+                "x5",
+                "white",
+                "black",
+                16,
+                slotRect,
+                new Rect(slotRect.width - 30, 20, 30, 20),
+                this.input,
+                () => EventBus.emit("hold_item", item.item, 5)
+              )],
+              ["x15", new LabelButton(
+                "x15",
+                "white",
+                "black",
+                16,
+                slotRect,
+                new Rect(slotRect.width - 30, 40, 30, 20),
+                this.input,
+                () => EventBus.emit("hold_item", item.item, 15)
+              )]
+            ]
+          )
+        });
+        c++;
+      });
+    }
+  }
+};
+var PlateInventory = class extends UIInventory {
+  plates = [];
+  constructor(input, player, sRect, dRect, offsetX = 0, offsetY = 0) {
+    super(input, player, sRect, dRect, offsetX, offsetY);
+    this.setItems();
+    EventBus.on("inventory:update", () => this.setItems());
+  }
+  draw(ctx2) {
+    this.plates.forEach(({ plate, rect }) => {
+      ctx2.drawImage(plate.sprite, ...plate.spriteClip, rect.x, rect.y, rect.width, rect.height);
+    });
+  }
+  update(dt) {
+    this.plates.forEach(({ plate, rect }) => {
+      if (this.input.clicked && this.input.isMouseOver(rect)) {
+        EventBus.emit("hold_item", plate, 0);
+        this.input.clicked = false;
+      }
+    });
+  }
+  setItems() {
+    this.plates = [];
+    let c = 0;
+    this.player.getInventory("plates").forEach((plate) => {
+      this.plates.push({ plate: plate.item, rect: new Rect(this.sRect.x + this.offsetX + 50 * (c % 2), this.sRect.y + this.offsetY + 50 * Math.floor(c / 2), 40, 40) });
+      c++;
+    });
+  }
+};
+var PiecesInventory = class extends UIInventory {
+  constructor(input, player, sRect, dRect, offsetX = 0, offsetY = 0) {
+    super(input, player, sRect, dRect, offsetX, offsetY);
+  }
+  draw(ctx2) {
+  }
+  update(dt) {
   }
 };
 
@@ -558,7 +777,14 @@ var UIRight = class extends UIGeneric {
   isReduced = false;
   reduceBtn;
   holdAmounts = [1, 5, 15];
-  currentScreen = "ores";
+  currentPage = "ores";
+  pages = /* @__PURE__ */ new Map(
+    [
+      ["ores", new OreInventory(this.input, this.player, this.rect, this.rect, 20, 60)],
+      ["plates", new PlateInventory(this.input, this.player, this.rect, this.rect, 20, 40)],
+      ["pieces", new PiecesInventory(this.input, this.player, this.rect, this.rect, 20, 40)]
+    ]
+  );
   constructor(input, player) {
     const rect = new Rect(
       HUDConfig.right.xRatio * GameConfig.GAME_WIDTH,
@@ -569,6 +795,18 @@ var UIRight = class extends UIGeneric {
     super(rect, input, player);
     this.resize();
     this.reduceBtn = new ColorButton("lime", this.rect, new Rect(-30, 0, 30, 30), this.input, () => this.resize());
+    this.buttons.set(
+      "ores",
+      new LabelButton("Ores", "black", "white", 16, this.rect, new Rect(10, 10, 30, 15), this.input, () => this.currentPage = "ores")
+    );
+    this.buttons.set(
+      "plates",
+      new LabelButton("Plates", "black", "white", 16, this.rect, new Rect(45, 10, 40, 15), this.input, () => this.currentPage = "plates")
+    );
+    this.buttons.set(
+      "pieces",
+      new LabelButton("Pieces", "black", "white", 16, this.rect, new Rect(90, 10, 40, 15), this.input, () => this.currentPage = "pieces")
+    );
   }
   resize() {
     if (!this.reduceBtn) return;
@@ -582,20 +820,30 @@ var UIRight = class extends UIGeneric {
       this.rect.x = GameConfig.GAME_WIDTH - this.rect.width;
       this.reduceBtn.dRect.x -= this.rect.width;
       this.isReduced = false;
+      EventBus.emit("inventory:update");
     }
   }
   draw(ctx2) {
     if (!this.isShown) return;
-    this.drawInventory(ctx2);
     this.reduceBtn.draw(ctx2);
-  }
-  drawInventory(ctx2) {
     if (this.isReduced) return;
     ctx2.fillStyle = "green";
     ctx2.fillRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
+    this.pages.get(this.currentPage).draw(ctx2);
+    this.buttons.forEach((button) => button.draw(ctx2));
+  }
+  update(dt) {
+    this.reduceBtn.update(dt);
+    this.pages.get(this.currentPage).update(dt);
+    for (const [_, button] of this.buttons) button.update(dt);
+  }
+  drawInventory(ctx2) {
+    if (this.isReduced) return;
+    ctx2.font = "16px MonogramFont";
+    this.buttons.forEach((button) => button.draw(ctx2));
     ctx2.fillStyle = "white";
     let c = 0;
-    for (const i of this.player.getInventory()) {
+    for (const i of this.player.getInventory(this.currentPage)) {
       const inventorySlot = new Rect(this.rect.x + 40, this.rect.y + 80 + 80 * c + 10 * c, this.rect.width - 80, 60);
       ctx2.drawImage(
         i[1].item.sprite,
@@ -630,6 +878,7 @@ var UIRight = class extends UIGeneric {
               "x" + amount,
               "white",
               "black",
+              16,
               inventorySlot,
               new Rect(inventorySlot.width - 30, inventorySlot.height / 3 * index, 30, inventorySlot.height / 3),
               this.input,
@@ -643,10 +892,6 @@ var UIRight = class extends UIGeneric {
       c++;
     }
     for (const [_, button] of this.buttons) button.draw(ctx2);
-  }
-  update(dt) {
-    this.reduceBtn.update(dt);
-    for (const [_, button] of this.buttons) button.update(dt);
   }
 };
 
@@ -678,7 +923,6 @@ var uiHUD = class {
     this.input = input;
     this.player = player;
     this.sections = /* @__PURE__ */ new Map([
-      ["left", new UILeft(input, player)],
       ["right", new UIRight(input, player)],
       ["top", new UITop(input, player)],
       ["bottom", new UIBottom(input, player)]
@@ -688,12 +932,6 @@ var uiHUD = class {
   draw(ctx2) {
     for (const section of this.sections.values()) {
       section.draw(ctx2);
-    }
-    if (this.player.holdingItem) {
-      ctx2.drawImage(this.player.holdingItem.item.sprite, ...this.player.holdingItem.item.spriteClip, this.input.x - 32, this.input.y - 32, 64, 64);
-      ctx2.fillStyle = "white";
-      ctx2.font = "24px MonogramFont";
-      ctx2.fillText(this.player.holdingItem.amount.toString(), this.input.x + 16, this.input.y + 16);
     }
   }
   update(dt) {
@@ -735,15 +973,28 @@ var UIManager = class {
     if (!this.isHUDActive) return;
     this.hud.draw(ctx2);
     this.hovers.forEach((hover) => hover.draw(ctx2));
+    this.drawToolTip(ctx2);
+    this.drawHoldingItem(ctx2);
+  }
+  drawHoldingItem(ctx2) {
+    if (this.player.holdingItem) {
+      ctx2.drawImage(this.player.holdingItem.item.sprite, ...this.player.holdingItem.item.spriteClip, this.input.x - 32, this.input.y - 32, 64, 64);
+      ctx2.fillStyle = "white";
+      ctx2.font = "24px MonogramFont";
+      if (this.player.holdingItem.amount === 0) return;
+      ctx2.fillText(this.player.holdingItem.amount.toString(), this.input.x + 16, this.input.y + 16);
+    }
+  }
+  drawToolTip(ctx2) {
     if (this.activeToolTip === "") return;
     ctx2.font = "16px MonogramFont";
     const wordData = ctx2.measureText(this.activeToolTip);
     ctx2.fillStyle = "black";
-    ctx2.fillRect(this.input.x - wordData.width / 2, this.input.y - 20, wordData.width + 10, 20);
+    ctx2.fillRect(this.input.x - wordData.width / 2 - 6, this.input.y - 20, wordData.width + 10, 20);
     ctx2.fillStyle = "white";
     ctx2.textAlign = "center";
     ctx2.textBaseline = "middle";
-    ctx2.fillText(this.activeToolTip, this.input.x + 5, this.input.y - 10);
+    ctx2.fillText(this.activeToolTip, this.input.x, this.input.y - 10);
     this.activeToolTip = "";
   }
   update(dt) {
@@ -856,7 +1107,7 @@ var CaveScene = class extends GenericScene {
   }
   oreRespawnTime = 20;
   ores = [];
-  canSpawn = [{ type: CoalOreBoulder, chance: 0.5 }, { type: CopperOreBoulder, chance: 0.4 }, { type: GoldOreBoulder, chance: 0.1 }];
+  canSpawn = [{ type: CoalOreBoulder, chance: 0.49 }, { type: CopperOreBoulder, chance: 0.46 }, { type: GoldOreBoulder, chance: 0.05 }];
   spots = [
     { x: 80, y: 340, ore: null, spawnTime: 20 },
     { x: 550, y: 320, ore: null, spawnTime: 20 },
@@ -879,6 +1130,10 @@ var CaveScene = class extends GenericScene {
     }
   }
   update(dt) {
+    if (this.player.holdingItem && this.input.clicked) {
+      this.player.holdingItem = null;
+      this.input.clicked = false;
+    }
     for (const ore of this.ores) {
       if (this.input.isMouseOver(ore.rect)) {
         EventBus.emit("set_tooltip", ore.name);
@@ -893,11 +1148,8 @@ var CaveScene = class extends GenericScene {
     }
     for (const spot of this.spots) {
       if (spot.ore) continue;
-      if (spot.spawnTime < this.oreRespawnTime) {
-        spot.spawnTime += dt;
-        continue;
-      }
-      this.generateOre(spot);
+      spot.spawnTime += dt;
+      if (spot.spawnTime >= this.oreRespawnTime) this.generateOre(spot);
     }
   }
   handleOreCollected = (oreBoulder, ore) => {
@@ -905,7 +1157,7 @@ var CaveScene = class extends GenericScene {
     const oreBoulderIndex = this.ores.indexOf(oreBoulder);
     delete this.ores[oreBoulderIndex];
     this.ores.splice(oreBoulderIndex, 1);
-    this.player.addItem(ore, 5);
+    this.player.addItem(ore, 1);
   };
   generateOre(spot) {
     const oreType = this.pickRandomOreType();
@@ -1071,7 +1323,7 @@ var ForgeScene = class extends GenericScene {
     super(input, player, sprite);
     this.input = input;
     this.player = player;
-    this.furnaces.push(new Furnace(new Rect(120, 200, 120, 120 * 1.6)));
+    this.furnaces.push(new Furnace(new Rect(220, 200, 120, 120 * 1.6)));
   }
   furnaces = [];
   draw(ctx2) {
@@ -1101,25 +1353,28 @@ var ForgeScene = class extends GenericScene {
         ctx2.fillText(furnace.getOutput().amount.toString(), furnaceUi.x + furnaceUi.width - 10, furnaceUi.y + 45);
       }
     }
-    ;
   }
   update(dt) {
-    for (const furnace of this.furnaces) furnace.update(dt);
+    for (const furnace of this.furnaces) {
+      furnace.update(dt);
+      if (this.input.isMouseOver(furnace.rect)) {
+        EventBus.emit("set_tooltip", "Furnace");
+      }
+    }
     for (const furnace of this.furnaces) {
       if (this.input.clicked) {
         if (furnace.rect.collide(this.input.getRect())) {
           if (this.player.holdingItem) {
-            if (this.player.holdingItem.item instanceof Fuel) {
-              if (furnace.addFuel(this.player.holdingItem.item, this.player.holdingItem.amount))
-                this.player.removeItem(this.player.holdingItem.item, this.player.holdingItem.amount);
-            } else if (this.player.holdingItem.item instanceof Ore) {
-              if (furnace.addOutput(this.player.holdingItem.item, this.player.holdingItem.amount))
-                this.player.removeItem(this.player.holdingItem.item, this.player.holdingItem.amount);
+            const { item, amount } = this.player.holdingItem;
+            if (item instanceof Fuel && furnace.addFuel(item, amount)) {
+              this.player.removeItem(item, amount);
+            } else if (item instanceof Melt && furnace.addOutput(item, amount)) {
+              this.player.removeItem(item, amount);
             }
-            this.input.clicked = false;
           } else {
             EventBus.emit("open_furnace", furnace);
           }
+          this.input.clicked = false;
         }
         this.player.holdingItem = null;
       }
@@ -1172,24 +1427,123 @@ var SmeltScene = class extends GenericScene {
 };
 
 // src/scenes/FurnaceScene.ts
+var colors = {
+  "Copper Ore": "hsl(20, 50%, 50%)",
+  "Gold Ore": "hsl(50, 80%, 50%)"
+};
 var FurnaceScene = class extends GenericScene {
   constructor(input, player, furnace) {
     const assetManager = AssetManager.getInstance();
     const sprite = assetManager.getBackgroundImage("furnaceBackground");
     super(input, player, sprite);
     this.furnace = furnace;
+    this.platePos = new Rect(this.rect.width / 2 - 100, 150, 200, 200);
+    this.meltedBackground = {
+      rect: new Rect(this.platePos.x + this.platePos.width / 2 - 73, this.platePos.y + this.platePos.height / 2 - 73, 146, 146),
+      color: null
+      //furnace.getOutput()?.item.outputType ? colors[furnace.getOutput()!.item.outputType as keyof typeof colors] : null
+    };
+    this.furnaceTank = {
+      rect: new Rect(60, this.platePos.y + this.platePos.height / 2 - 120 - 50, 140, 260),
+      ores: []
+    };
+    this.smeltBtn = new LabelButton(
+      "DROP",
+      "black",
+      "cyan",
+      16,
+      this.furnaceTank.rect,
+      new Rect(this.furnaceTank.rect.width / 2 - 25, this.furnaceTank.rect.height + 60, 50, 30),
+      this.input,
+      this.meltToPlate.bind(this)
+    );
   }
-  plates = [];
   activePlate = null;
+  platePos;
+  meltedBackground;
+  furnaceTank;
+  smeltProcess = null;
+  smeltBtn;
   draw(ctx2) {
     super.draw(ctx2);
-    if (this.activePlate)
-      ctx2.drawImage(this.activePlate.sprite, ...this.activePlate.spriteClip, this.rect.width / 2 - 90, 150, 180, 180);
-    console.log(this.furnace.content);
+    this.drawFurnaceTank(ctx2);
+    this.smeltBtn.draw(ctx2);
+    this.drawPlate(ctx2);
   }
   update(dt) {
-    for (const plate of this.plates) {
+    if (this.player.holdingItem && this.input.clicked) {
+      if (this.player.holdingItem?.item instanceof Plate && this.input.isMouseOver(this.platePos)) {
+        this.activePlate = this.player.holdingItem.item;
+        this.smeltProcess = null;
+      }
+      this.player.holdingItem = null;
     }
+    this.smeltBtn.update(dt);
+  }
+  meltToPlate() {
+    if (this.furnace.content.length === 0 || !this.activePlate) return;
+    const { ore } = this.furnace.content[0];
+    if (this.smeltProcess) {
+      if (this.smeltProcess.ore.name === ore.name && this.smeltProcess.amount < this.activePlate.oreNeededAmount) {
+        this.smeltProcess.amount += 1;
+        this.furnace.content[0].amount -= 1;
+        if (this.furnace.content[0].amount === 0) this.furnace.content.shift();
+      }
+      return;
+    }
+    this.smeltProcess = { ore, amount: 1 };
+    this.furnace.content[0].amount -= 1;
+    this.meltedBackground.color = colors[ore.name];
+  }
+  drawPlate(ctx2) {
+    ctx2.fillStyle = "gray";
+    ctx2.fillRect(this.platePos.x, this.platePos.y, this.platePos.width, this.platePos.height);
+    if (this.activePlate) {
+      ctx2.fillStyle = this.meltedBackground.color ?? "white";
+      ctx2.fillRect(
+        this.platePos.x + this.platePos.width / 2 - 73,
+        this.platePos.y + this.platePos.height / 2 - 73,
+        146,
+        146 * (this.smeltProcess?.amount ?? 0) / this.activePlate.oreNeededAmount
+      );
+      ctx2.drawImage(
+        this.activePlate.sprite,
+        ...this.activePlate.spriteClip,
+        this.platePos.x + this.platePos.width / 2 - 90,
+        this.platePos.y + this.platePos.height / 2 - 90,
+        180,
+        180
+      );
+      ctx2.fillStyle = "black";
+      ctx2.textAlign = "center";
+      ctx2.textBaseline = "top";
+      ctx2.font = "20px MonogramFont";
+      const filledAmount = this.smeltProcess?.amount ?? 0;
+      ctx2.fillText(
+        `${filledAmount}/${this.activePlate.oreNeededAmount}`,
+        this.platePos.x + this.platePos.width / 2,
+        this.platePos.y + this.platePos.height
+      );
+    }
+  }
+  drawFurnaceTank(ctx2) {
+    ctx2.fillStyle = "gray";
+    ctx2.fillRect(this.furnaceTank.rect.x, this.furnaceTank.rect.y, this.furnaceTank.rect.width, this.furnaceTank.rect.height);
+    let outputYPos = this.furnaceTank.rect.y + this.furnaceTank.rect.height;
+    for (const { ore, amount } of this.furnace.content) {
+      outputYPos -= 260 * amount / this.furnace.maxSpaceAmount;
+      ctx2.fillStyle = colors[ore.name] ?? "white";
+      ctx2.fillRect(this.furnaceTank.rect.x, outputYPos, this.furnaceTank.rect.width, 260 * amount / this.furnace.maxSpaceAmount);
+    }
+    ctx2.fillStyle = "black";
+    ctx2.font = "20px MonogramFont";
+    ctx2.textAlign = "center";
+    ctx2.textBaseline = "top";
+    ctx2.fillText(
+      `${this.furnace.content.reduce((a, b) => a + b.amount, 0)}/${this.furnace.maxSpaceAmount}`,
+      this.furnaceTank.rect.x + this.furnaceTank.rect.width / 2,
+      this.furnaceTank.rect.y + this.furnaceTank.rect.height
+    );
   }
   enter() {
   }
