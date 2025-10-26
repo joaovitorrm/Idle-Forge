@@ -1,11 +1,30 @@
 import type { InputManager } from "../../core/InputManager.js";
-import type Rect from "../../util/rect.js";
+import Rect from "../../util/rect.js";
 
 export default class UIHover {
     public isOver: boolean = false;
-    constructor(public sRect: Rect, public dRect: Rect, protected input: InputManager, protected title: string, protected description: string = "") {
-        this.dRect.x += this.sRect.x;
-        this.dRect.y += this.sRect.y;
+    public title: string;
+    public description: string[];
+    private dRect : Rect;
+    constructor(public sRect: Rect, pos : {x : number, y : number}, protected input: InputManager, title: string, description: string = "") {
+
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d")!;
+
+        ctx.font = "20px MonogramFont";
+        const titleWidth = ctx.measureText(title).width;
+
+        this.title = title;
+        this.description = description.split("\n").filter((d) => d !== "");
+
+        console.log(this.description);
+
+        this.dRect = new Rect(
+            this.sRect.x + pos.x,
+            this.sRect.y + pos.y,
+            Math.max(titleWidth, ...this.description.map((d) => ctx.measureText(d).width)),
+            20 * (this.description.length + 1)
+        )
     }
 
     draw(ctx: CanvasRenderingContext2D) {
@@ -13,19 +32,16 @@ export default class UIHover {
             ctx.fillStyle = "black";
             ctx.fillRect(this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
 
-            ctx.textAlign = "center";
-            ctx.textBaseline = "top";
-
-            ctx.fillStyle = "white";
             ctx.font = "20px MonogramFont";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "top";            
+            ctx.fillStyle = "white";            
             ctx.fillText(this.title, this.dRect.x + this.dRect.width / 2, this.dRect.y);
 
-            if (this.description === "") return;
-
-            ctx.textAlign = "center";
-            ctx.textBaseline = "bottom";
             ctx.font = "16px MonogramFont";
-            ctx.fillText(this.description, this.dRect.x + this.dRect.width / 2, this.dRect.y + this.dRect.height - 2);
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";            
+            this.description.forEach((d, i) => ctx.fillText(d, this.dRect.x + this.dRect.width / 2, this.dRect.y + 30 + (14 * i)));
         }
     }
 

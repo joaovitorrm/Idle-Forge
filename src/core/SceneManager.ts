@@ -106,8 +106,9 @@ export class SceneManager {
     public currentScene: SceneKey = "cave";
 
     constructor(protected input: InputManager, protected player: Player) {
-        EventBus.on("open_furnace", (furnace: Furnace) => this.setScene("furnace", furnace));
-        EventBus.on("open_anvil", () => this.setScene("anvil"));
+        EventBus.on("scene:set", (scene: SceneKey, ...args: any[]) => {
+            this.setScene(scene as any, ...args);
+        });
     }
 
     draw(ctx: CanvasRenderingContext2D) {

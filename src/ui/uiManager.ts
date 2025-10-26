@@ -33,8 +33,8 @@ export class UIManager {
         this.hud.sections.get(side)!.buttons.set(name, new ImageButton(this.hud.sections.get(side)!.rect, rect, this.input, image, clip, handleClick));
     }
 
-    public addButtonHover(button : Button, dRect : Rect, title : string, description : string = "") : void {
-        this.hovers.set(title, new UIHover(button.dRect, dRect, this.input, title, description));
+    public addButtonHover(button : Button, dPos : { x : number, y : number}, title : string, description : string = "") : void {
+        this.hovers.set(title, new UIHover(button.dRect, dPos, this.input, title, description));
     }
 
     public getHUDButton(side: HUDSection, name: string): Button | undefined {
@@ -71,12 +71,20 @@ export class UIManager {
         const wordData = ctx.measureText(this.activeToolTip);
 
         ctx.fillStyle = "black";
-        ctx.fillRect(this.input.x - wordData.width / 2 - 6, this.input.y - 20, wordData.width + 10, 20);
+        let x = this.input.x - wordData.width / 2 - 5;
+        let y = this.input.y - 20;
+
+        if (x < 0) x = 0;
+        else if (x + wordData.width + 10 > ctx.canvas.width) x = ctx.canvas.width - wordData.width - 10;
+
+        if (y < 0) y = 0;
+
+        ctx.fillRect(x, y, wordData.width + 10, 20);
 
         ctx.fillStyle = "white";        
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(this.activeToolTip, this.input.x, this.input.y - 10);
+        ctx.fillText(this.activeToolTip, x + wordData.width / 2 + 5, y + 10);
 
         this.activeToolTip = "";
     }

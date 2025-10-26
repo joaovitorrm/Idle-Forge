@@ -103,8 +103,8 @@ export default class FurnaceScene extends GenericScene {
             );
 
             ctx.drawImage(
-                this.activePlate!.sprite,
-                ...this.activePlate!.spriteClip,
+                this.activePlate!.getSprite(),
+                ...this.activePlate!.getClip(),
                 this.platePos.x + this.platePos.width / 2 - 90,
                 this.platePos.y + this.platePos.height / 2 - 90,
                 180, 180

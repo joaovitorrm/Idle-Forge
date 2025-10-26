@@ -215,6 +215,211 @@ var Rect = class _Rect {
   }
 };
 
+// src/data/oreData.ts
+var oreTypes = {
+  "copper": {
+    head: {
+      name: "Copper",
+      damageCut: 6,
+      damageImpact: 5,
+      durability: 120,
+      weight: 1.5,
+      special: "Male\xE1vel, f\xE1cil de moldar, n\xE3o muito resistente"
+    },
+    handle: {
+      name: "Copper",
+      damageCutMultiplier: 1,
+      damageImpactMultiplier: 1,
+      durabilityMultiplier: 1,
+      weight: 1,
+      special: "Conduz eletricidade, n\xE3o muito leve"
+    },
+    union: {
+      name: "Copper",
+      damageCutMultiplier: 1,
+      damageImpactMultiplier: 1,
+      durabilityMultiplier: 0.9,
+      weight: 0.5,
+      special: "Solda bem com outros metais"
+    }
+  },
+  "iron": {
+    head: {
+      name: "Iron",
+      damageCut: 8,
+      damageImpact: 10,
+      durability: 250,
+      weight: 2,
+      special: "Vers\xE1til, confi\xE1vel para l\xE2minas e pontas"
+    },
+    handle: {
+      name: "Iron",
+      damageCutMultiplier: 1.05,
+      damageImpactMultiplier: 1.1,
+      durabilityMultiplier: 1.1,
+      weight: 1.8,
+      special: "Mais pesado, resistente a impacto"
+    },
+    union: {
+      name: "Iron",
+      damageCutMultiplier: 1,
+      damageImpactMultiplier: 1.05,
+      durabilityMultiplier: 1.05,
+      weight: 1,
+      special: "F\xE1cil de forjar e soldar"
+    }
+  },
+  "gold": {
+    head: {
+      name: "Gold",
+      damageCut: 6,
+      damageImpact: 5,
+      durability: 150,
+      weight: 2,
+      special: "Male\xE1vel, n\xE3o enferruja, aumenta valor"
+    },
+    handle: {
+      name: "Gold",
+      damageCutMultiplier: 1,
+      damageImpactMultiplier: 1,
+      durabilityMultiplier: 1,
+      weight: 1.5,
+      special: "Luxuoso, condu\xE7\xE3o de magia"
+    },
+    union: {
+      name: "Gold",
+      damageCutMultiplier: 1,
+      damageImpactMultiplier: 1,
+      durabilityMultiplier: 1,
+      weight: 0.5,
+      special: "Excelente para ornamentos"
+    }
+  },
+  "bronze": {
+    head: {
+      name: "Bronze",
+      damageCut: 7,
+      damageImpact: 6,
+      durability: 200,
+      weight: 1.8,
+      special: "Mais resistente que cobre, f\xE1cil de moldar"
+    },
+    handle: {
+      name: "Bronze",
+      damageCutMultiplier: 1,
+      damageImpactMultiplier: 1,
+      durabilityMultiplier: 1.05,
+      weight: 1.2,
+      special: "Leve, resistente a desgaste"
+    },
+    union: {
+      name: "Bronze",
+      damageCutMultiplier: 1,
+      damageImpactMultiplier: 1,
+      durabilityMultiplier: 1.05,
+      weight: 0.5,
+      special: "Boa liga\xE7\xE3o entre partes"
+    }
+  },
+  "steel": {
+    head: {
+      name: "Steel",
+      damageCut: 12,
+      damageImpact: 15,
+      durability: 400,
+      weight: 2.2,
+      special: "Muito vers\xE1til, \xF3timo equil\xEDbrio"
+    },
+    handle: {
+      name: "Steel",
+      damageCutMultiplier: 1.05,
+      damageImpactMultiplier: 1.05,
+      durabilityMultiplier: 1.1,
+      weight: 2,
+      special: "Resistente e firme"
+    },
+    union: {
+      name: "Steel",
+      damageCutMultiplier: 1,
+      damageImpactMultiplier: 1.05,
+      durabilityMultiplier: 1.1,
+      weight: 1,
+      special: "Alta durabilidade"
+    }
+  },
+  "quartz": {
+    head: { name: "Quartz", damageCut: 5, damageImpact: 4, durability: 80, weight: 1, special: "Pode formar l\xE2minas afiadas, fr\xE1gil" },
+    handle: { name: "Quartz", damageCutMultiplier: 0.95, damageImpactMultiplier: 0.95, durabilityMultiplier: 0.9, weight: 0.8, special: "Fr\xE1gil, decorativo" },
+    union: { name: "Quartz", damageCutMultiplier: 0.9, damageImpactMultiplier: 0.9, durabilityMultiplier: 0.85, weight: 0.5, special: "Fr\xE1gil, apenas para encaixe leve" }
+  },
+  "topaz": {
+    head: { name: "Topaz", damageCut: 12, damageImpact: 10, durability: 300, weight: 1.5, special: "Resistente ao desgaste, bom para armas afiadas" },
+    handle: { name: "Topaz", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1.2, special: "Leve e resistente" },
+    union: { name: "Topaz", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Mant\xE9m estabilidade" }
+  },
+  "ruby": {
+    head: { name: "Ruby", damageCut: 15, damageImpact: 12, durability: 350, weight: 1.5, special: "Perfura armaduras leves" },
+    handle: { name: "Ruby", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1.2, special: "Resistente a impactos" },
+    union: { name: "Ruby", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Mant\xE9m a arma firme" }
+  },
+  "emerald": {
+    head: { name: "Emerald", damageCut: 14, damageImpact: 11, durability: 320, weight: 1.5, special: "Dano extra contra criaturas m\xEDsticas" },
+    handle: { name: "Emerald", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1.2, special: "Boa empunhadura" },
+    union: { name: "Emerald", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Est\xE1vel" }
+  },
+  "sapphire": {
+    head: { name: "Sapphire", damageCut: 16, damageImpact: 13, durability: 370, weight: 1.5, special: "Resistente ao calor e fogo" },
+    handle: { name: "Sapphire", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1.2, special: "Leve e resistente" },
+    union: { name: "Sapphire", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Mant\xE9m firme, resistente ao calor" }
+  },
+  "diamond": {
+    head: { name: "Diamond", damageCut: 25, damageImpact: 20, durability: 1e3, weight: 1, special: "O mais duro, corta quase tudo" },
+    handle: { name: "Diamond", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1, special: "Muito resistente, mas fr\xE1gil lateralmente" },
+    union: { name: "Diamond", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Dif\xEDcil de unir, mas extremamente forte" }
+  },
+  "mithril": {
+    head: { name: "Mithril", damageCut: 20, damageImpact: 18, durability: 800, weight: 0.8, special: "Leve e resistente, lend\xE1rio" },
+    handle: { name: "Mithril", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.1, weight: 0.7, special: "Melhora manuseio e durabilidade" },
+    union: { name: "Mithril", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1.05, weight: 0.3, special: "Mant\xE9m firme e leve" }
+  },
+  "adamantium": {
+    head: { name: "Adamantium", damageCut: 30, damageImpact: 28, durability: 1200, weight: 1.5, special: "Extremamente resistente, lend\xE1rio" },
+    handle: { name: "Adamantium", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1.2, special: "Firme e est\xE1vel" },
+    union: { name: "Adamantium", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Mant\xE9m for\xE7a m\xE1xima" }
+  },
+  "obsidian": {
+    head: { name: "Obsidian", damageCut: 18, damageImpact: 10, durability: 70, weight: 1, special: "Muito afiado, mas fr\xE1gil" },
+    handle: { name: "Obsidian", damageCutMultiplier: 0.95, damageImpactMultiplier: 0.95, durabilityMultiplier: 0.9, weight: 0.8, special: "Decorativo, empunhadura fr\xE1gil" },
+    union: { name: "Obsidian", damageCutMultiplier: 0.9, damageImpactMultiplier: 0.9, durabilityMultiplier: 0.85, weight: 0.5, special: "Fr\xE1gil, apenas para encaixe leve" }
+  },
+  "amethyst": {
+    head: { name: "Amethyst", damageCut: 14, damageImpact: 12, durability: 200, weight: 1.3, special: "Raro, Head m\xE1gico" },
+    handle: { name: "Amethyst", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1, special: "B\xF4nus m\xE1gico leve" },
+    union: { name: "Amethyst", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Mant\xE9m estabilidade e magia" }
+  },
+  "garnet": {
+    head: { name: "Garnet", damageCut: 12, damageImpact: 10, durability: 220, weight: 1.3, special: "Duro, mas n\xE3o t\xE3o resistente quanto Ruby" },
+    handle: { name: "Garnet", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1, special: "Empunhadura est\xE1vel" },
+    union: { name: "Garnet", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Mant\xE9m firme" }
+  },
+  "dragonbone": {
+    head: { name: "Dragonbone", damageCut: 18, damageImpact: 20, durability: 500, weight: 1, special: "Leve, resistente, lend\xE1rio" },
+    handle: { name: "Dragonbone", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 0.8, special: "Melhora manuseio e durabilidade" },
+    union: { name: "Dragonbone", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1.05, weight: 0.3, special: "Firme e leve" }
+  },
+  "soulstone": {
+    head: { name: "Soulstone", damageCut: 16, damageImpact: 14, durability: 400, weight: 1.2, special: "Aplica efeitos m\xE1gicos" },
+    handle: { name: "Soulstone", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1, special: "Amplifica magia da Head" },
+    union: { name: "Soulstone", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Mant\xE9m conex\xE3o m\xE1gica est\xE1vel" }
+  },
+  "voidmetal": {
+    head: { name: "Voidmetal", damageCut: 28, damageImpact: 25, durability: 1e3, weight: 1.5, special: "Resistente a magia, lend\xE1rio" },
+    handle: { name: "Voidmetal", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1.2, special: "Est\xE1vel, resistente" },
+    union: { name: "Voidmetal", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Mant\xE9m for\xE7a m\xE1xima e magia" }
+  }
+};
+var oreData_default = oreTypes;
+
 // src/entities/Item.ts
 var Item = class _Item {
   constructor(name, spriteKey, combinedSprite = null) {
@@ -274,13 +479,22 @@ var Tool = class extends Item {
 };
 var Piece = class extends Item {
   constructor(oreType, pieceType) {
-    const name = `${oreType} ${pieceType}`;
+    const name = `${oreType.charAt(0).toUpperCase() + oreType.slice(1)} ${pieceType}`;
     const spriteKey = `${oreType.toLocaleLowerCase()}${pieceType.split(" ").join("")}`;
     super(name, spriteKey);
     this.oreType = oreType;
     this.pieceType = pieceType;
   }
 };
+for (const ore of Object.keys(oreData_default)) {
+  ["Pickaxe Head", "Handle", "Union", "Sword Head", "Sword Handle"].forEach((pieceType) => {
+    Item.register(`${ore.charAt(0).toUpperCase() + ore.slice(1)} ${pieceType}`, class extends Piece {
+      constructor() {
+        super(ore, pieceType);
+      }
+    });
+  });
+}
 var Fuel = class extends Ore {
   constructor(name, spriteKey, tier, burnTime) {
     super(name, spriteKey, tier);
@@ -297,14 +511,15 @@ var Melt = class extends Ore {
 };
 var Pickaxe = class _Pickaxe extends Tool {
   constructor(name, spriteKey, combinedSprite, head, handle, union) {
-    if (name === null) {
-      name = `${head.oreType} Pickaxe`;
-    }
     super(name, spriteKey, combinedSprite);
     this.head = head;
     this.handle = handle;
     this.union = union;
+    this.damage = oreData_default[head.oreType].head.damageImpact * oreData_default[handle.oreType].handle.damageImpactMultiplier * oreData_default[union.oreType].union.damageCutMultiplier;
+    this.durability = oreData_default[head.oreType].head.durability * oreData_default[handle.oreType].handle.durabilityMultiplier * oreData_default[union.oreType].union.durabilityMultiplier;
   }
+  damage;
+  durability;
   static async create(name, head, handle, union) {
     const combined = await AssetManager.getInstance().getCombinedImage(
       [
@@ -316,7 +531,7 @@ var Pickaxe = class _Pickaxe extends Tool {
       32
     );
     return new _Pickaxe(
-      name ?? `${head.oreType} Pickaxe`,
+      name ?? `${head.oreType.charAt(0).toUpperCase() + head.oreType.slice(1)} Pickaxe`,
       head.spriteKey,
       combined,
       head,
@@ -330,28 +545,13 @@ var StarterPickaxe = class extends Pickaxe {
     super(name, key, sprite, head, handle, union);
   }
   static async create() {
-    const head = new pickaxeHeadPiece("Copper");
-    const handle = new handlePiece("Copper");
-    const union = new unionPiece("Gold");
-    return await Pickaxe.create("Starter Pickaxe", head, handle, union);
+    const head = new Piece("copper", "Pickaxe Head");
+    const handle = new Piece("copper", "Handle");
+    const union = new Piece("copper", "Union");
+    return await Pickaxe.create(null, head, handle, union);
   }
   getDamage() {
     return 1;
-  }
-};
-var pickaxeHeadPiece = class extends Piece {
-  constructor(oreType) {
-    super(oreType, "Pickaxe Head");
-  }
-};
-var handlePiece = class extends Piece {
-  constructor(oreType) {
-    super(oreType, "Handle");
-  }
-};
-var unionPiece = class extends Piece {
-  constructor(oreType) {
-    super(oreType, "Union");
   }
 };
 var pickaxeHeadPlate = class extends Plate {
@@ -359,7 +559,7 @@ var pickaxeHeadPlate = class extends Plate {
     super("Pickaxe Head Plate", "pPickaxeHead", 3);
   }
   getPiece(ore) {
-    return new pickaxeHeadPiece(ore.outputType);
+    return new Piece(ore.outputType, "Pickaxe Head");
   }
 };
 Item.register("Pickaxe Head Plate", pickaxeHeadPlate);
@@ -368,7 +568,7 @@ var handlePlate = class extends Plate {
     super("Handle Plate", "pHandle", 2);
   }
   getPiece(ore) {
-    return new handlePiece(ore.outputType);
+    return new Piece(ore.outputType, "Handle");
   }
 };
 Item.register("Handle Plate", handlePlate);
@@ -377,7 +577,7 @@ var unionPlate = class extends Plate {
     super("Union Plate", "pUnion", 3);
   }
   getPiece(ore) {
-    return new handlePiece(ore.outputType);
+    return new Piece(ore.outputType, "Union");
   }
 };
 Item.register("Union Plate", unionPlate);
@@ -386,7 +586,7 @@ var swordHandlerPlate = class extends Plate {
     super("Sword Handler Plate", "pSwordHandle", 1);
   }
   getPiece(ore) {
-    return new handlePiece(ore.outputType);
+    return new Piece(ore.outputType, "Sword Handle");
   }
 };
 Item.register("Sword Handler Plate", swordHandlerPlate);
@@ -395,19 +595,19 @@ var swordHeadPlate = class extends Plate {
     super("Sword Head Plate", "pSwordHead", 3);
   }
   getPiece(ore) {
-    return new handlePiece(ore.outputType);
+    return new Piece(ore.outputType, "Sword Head");
   }
 };
 Item.register("Sword Head Plate", swordHeadPlate);
 var CopperOre = class extends Melt {
   constructor() {
-    super("Copper Ore", "copperOre", 1, "Copper", 5, 10);
+    super("Copper Ore", "copperOre", 1, "copper", 5, 10);
   }
 };
 Item.register("Copper Ore", CopperOre);
 var GoldOre = class extends Melt {
   constructor() {
-    super("Gold Ore", "goldOre", 2, "Gold", 20, 15);
+    super("Gold Ore", "goldOre", 2, "gold", 20, 15);
   }
 };
 Item.register("Gold Ore", GoldOre);
@@ -417,42 +617,6 @@ var CoalOre = class extends Fuel {
   }
 };
 Item.register("Coal Ore", CoalOre);
-var CopperPickaxeHead = class extends Piece {
-  constructor() {
-    super("Copper", "Pickaxe Head");
-  }
-};
-Item.register("Copper Pickaxe Head", CopperPickaxeHead);
-var CopperHandle = class extends Piece {
-  constructor() {
-    super("Copper", "Handle");
-  }
-};
-Item.register("Copper Handle", CopperHandle);
-var CopperUnion = class extends Piece {
-  constructor() {
-    super("Copper", "Union");
-  }
-};
-Item.register("Copper Union", CopperUnion);
-var GoldPickaxeHead = class extends Piece {
-  constructor() {
-    super("Gold", "Pickaxe Head");
-  }
-};
-Item.register("Gold Pickaxe Head", GoldPickaxeHead);
-var GoldHandle = class extends Piece {
-  constructor() {
-    super("Gold", "Handle");
-  }
-};
-Item.register("Gold Handle", GoldHandle);
-var GoldUnion = class extends Piece {
-  constructor() {
-    super("Gold", "Union");
-  }
-};
-Item.register("Gold Union", GoldUnion);
 
 // src/entities/Inventory.ts
 var Inventory = class {
@@ -583,7 +747,7 @@ var Player = class {
     return 0;
   }
   getPickaxeDamage() {
-    return 1;
+    return this.gear.pickaxe ? this.gear.pickaxe.damage : 0;
   }
 };
 
@@ -662,30 +826,40 @@ var ImageButton = class extends Button {
 
 // src/ui/uiElements/uiHover.ts
 var UIHover = class {
-  constructor(sRect, dRect, input, title, description = "") {
+  constructor(sRect, pos, input, title, description = "") {
     this.sRect = sRect;
-    this.dRect = dRect;
     this.input = input;
+    const canvas2 = document.createElement("canvas");
+    const ctx2 = canvas2.getContext("2d");
+    ctx2.font = "20px MonogramFont";
+    const titleWidth = ctx2.measureText(title).width;
     this.title = title;
-    this.description = description;
-    this.dRect.x += this.sRect.x;
-    this.dRect.y += this.sRect.y;
+    this.description = description.split("\n").filter((d) => d !== "");
+    console.log(this.description);
+    this.dRect = new Rect(
+      this.sRect.x + pos.x,
+      this.sRect.y + pos.y,
+      Math.max(titleWidth, ...this.description.map((d) => ctx2.measureText(d).width)),
+      20 * (this.description.length + 1)
+    );
   }
   isOver = false;
+  title;
+  description;
+  dRect;
   draw(ctx2) {
     if (this.isOver) {
       ctx2.fillStyle = "black";
       ctx2.fillRect(this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
+      ctx2.font = "20px MonogramFont";
       ctx2.textAlign = "center";
       ctx2.textBaseline = "top";
       ctx2.fillStyle = "white";
-      ctx2.font = "20px MonogramFont";
       ctx2.fillText(this.title, this.dRect.x + this.dRect.width / 2, this.dRect.y);
-      if (this.description === "") return;
-      ctx2.textAlign = "center";
-      ctx2.textBaseline = "bottom";
       ctx2.font = "16px MonogramFont";
-      ctx2.fillText(this.description, this.dRect.x + this.dRect.width / 2, this.dRect.y + this.dRect.height - 2);
+      ctx2.textAlign = "center";
+      ctx2.textBaseline = "middle";
+      this.description.forEach((d, i) => ctx2.fillText(d, this.dRect.x + this.dRect.width / 2, this.dRect.y + 30 + 14 * i));
     }
   }
   update(dt) {
@@ -714,6 +888,7 @@ var UIGeneric = class {
   }
   isShown = true;
   buttons = /* @__PURE__ */ new Map();
+  hovers = /* @__PURE__ */ new Map();
   setIsShown(isShown) {
     this.isShown = isShown;
   }
@@ -1104,15 +1279,28 @@ var UITop = class extends UIGeneric {
     ctx2.fillStyle = "hsla(0, 0%, 10%, 0.8)";
     ctx2.fillRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
     for (const [_, button] of this.buttons) button.draw(ctx2);
+    for (const [_, hover] of this.hovers) hover.draw(ctx2);
   }
   update(dt) {
-    for (const [_, button] of this.buttons) button.update(dt);
+    for (const [key, button] of this.buttons) {
+      button.update(dt);
+    }
+    ;
+    for (const [_, hover] of this.hovers) hover.update(dt);
   }
   load() {
     this.buttons.set(
       "player_pickaxe",
       new ImageButton(this.rect, new Rect(0, 5, 50, 50), this.input, this.player.gear.pickaxe.getSprite(), this.player.gear.pickaxe.getClip())
     );
+    this.hovers.set("player_pickaxe", new UIHover(
+      this.buttons.get("player_pickaxe").dRect,
+      { x: 50, y: 0 },
+      this.input,
+      this.player.gear.pickaxe.name,
+      `Damage: ${this.player.gear.pickaxe.damage}
+Durability: ${this.player.gear.pickaxe.durability}`
+    ));
   }
 };
 
@@ -1162,8 +1350,8 @@ var UIManager = class {
   addHUDImageButton(side, name, image, clip, rect, handleClick = null) {
     this.hud.sections.get(side).buttons.set(name, new ImageButton(this.hud.sections.get(side).rect, rect, this.input, image, clip, handleClick));
   }
-  addButtonHover(button, dRect, title, description = "") {
-    this.hovers.set(title, new UIHover(button.dRect, dRect, this.input, title, description));
+  addButtonHover(button, dPos, title, description = "") {
+    this.hovers.set(title, new UIHover(button.dRect, dPos, this.input, title, description));
   }
   getHUDButton(side, name) {
     return this.hud.sections.get(side).buttons.get(name);
@@ -1189,11 +1377,16 @@ var UIManager = class {
     ctx2.font = "16px MonogramFont";
     const wordData = ctx2.measureText(this.activeToolTip);
     ctx2.fillStyle = "black";
-    ctx2.fillRect(this.input.x - wordData.width / 2 - 6, this.input.y - 20, wordData.width + 10, 20);
+    let x = this.input.x - wordData.width / 2 - 5;
+    let y = this.input.y - 20;
+    if (x < 0) x = 0;
+    else if (x + wordData.width + 10 > ctx2.canvas.width) x = ctx2.canvas.width - wordData.width - 10;
+    if (y < 0) y = 0;
+    ctx2.fillRect(x, y, wordData.width + 10, 20);
     ctx2.fillStyle = "white";
     ctx2.textAlign = "center";
     ctx2.textBaseline = "middle";
-    ctx2.fillText(this.activeToolTip, this.input.x, this.input.y - 10);
+    ctx2.fillText(this.activeToolTip, x + wordData.width / 2 + 5, y + 10);
     this.activeToolTip = "";
   }
   update(dt) {
@@ -1567,11 +1760,11 @@ var ForgeScene = class extends GenericScene {
       ctx2.strokeRect(furnaceUi.x + 5, furnaceUi.y + 5, 40, 40);
       ctx2.strokeRect(furnaceUi.x + furnaceUi.width - 45, furnaceUi.y + 5, 40, 40);
       if (furnace.getFuel()) {
-        ctx2.drawImage(furnace.getFuel().item.sprite, ...furnace.getFuel().item.spriteClip, furnaceUi.x + 5, furnaceUi.y + 5, 40, 40);
+        ctx2.drawImage(furnace.getFuel().item.getSprite(), ...furnace.getFuel().item.getClip(), furnaceUi.x + 5, furnaceUi.y + 5, 40, 40);
         ctx2.fillText(furnace.getFuel().amount.toString(), furnaceUi.x + 40, furnaceUi.y + 45);
       }
       if (furnace.getOutput()) {
-        ctx2.drawImage(furnace.getOutput().item.sprite, ...furnace.getOutput().item.spriteClip, furnaceUi.x + furnaceUi.width - 45, furnaceUi.y + 5, 40, 40);
+        ctx2.drawImage(furnace.getOutput().item.getSprite(), ...furnace.getOutput().item.getClip(), furnaceUi.x + furnaceUi.width - 45, furnaceUi.y + 5, 40, 40);
         ctx2.fillText(furnace.getOutput().amount.toString(), furnaceUi.x + furnaceUi.width - 10, furnaceUi.y + 45);
       }
     }
@@ -1601,7 +1794,7 @@ var ForgeScene = class extends GenericScene {
               this.player.removeItem(item, amount);
             }
           } else {
-            EventBus.emit("open_furnace", furnace);
+            EventBus.emit("scene:set", "furnace", furnace);
           }
           this.input.clicked = false;
         }
@@ -1614,7 +1807,7 @@ var ForgeScene = class extends GenericScene {
       if (this.input.isMouseOver(anvil.rect)) {
         EventBus.emit("set_tooltip", "Anvil");
         if (this.input.clicked) {
-          EventBus.emit("open_anvil", anvil);
+          EventBus.emit("scene:set", "anvil");
           this.input.clicked = false;
         }
       }
@@ -1752,8 +1945,8 @@ var FurnaceScene = class extends GenericScene {
         146 * (this.smeltProcess?.amount ?? 0) / this.activePlate.oreNeededAmount
       );
       ctx2.drawImage(
-        this.activePlate.sprite,
-        ...this.activePlate.spriteClip,
+        this.activePlate.getSprite(),
+        ...this.activePlate.getClip(),
         this.platePos.x + this.platePos.width / 2 - 90,
         this.platePos.y + this.platePos.height / 2 - 90,
         180,
@@ -1836,8 +2029,9 @@ var SceneManager = class {
   constructor(input, player) {
     this.input = input;
     this.player = player;
-    EventBus.on("open_furnace", (furnace) => this.setScene("furnace", furnace));
-    EventBus.on("open_anvil", () => this.setScene("anvil"));
+    EventBus.on("scene:set", (scene, ...args) => {
+      this.setScene(scene, ...args);
+    });
   }
   loadedScenes = /* @__PURE__ */ new Map();
   sceneClasses = {

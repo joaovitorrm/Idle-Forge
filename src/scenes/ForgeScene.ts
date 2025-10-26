@@ -60,12 +60,12 @@ export default class ForgeScene extends GenericScene {
             ctx.strokeRect(furnaceUi.x + furnaceUi.width - 45, furnaceUi.y + 5, 40, 40);
 
             if (furnace.getFuel()) {
-                ctx.drawImage(furnace.getFuel()!.item.sprite, ...furnace.getFuel()!.item.spriteClip, furnaceUi.x + 5, furnaceUi.y + 5, 40, 40);
+                ctx.drawImage(furnace.getFuel()!.item.getSprite(), ...furnace.getFuel()!.item.getClip(), furnaceUi.x + 5, furnaceUi.y + 5, 40, 40);
                 ctx.fillText(furnace.getFuel()!.amount.toString(), furnaceUi.x + 40, furnaceUi.y + 45);
             }
 
             if (furnace.getOutput()) {
-                ctx.drawImage(furnace.getOutput()!.item.sprite, ...furnace.getOutput()!.item.spriteClip, furnaceUi.x + furnaceUi.width - 45, furnaceUi.y + 5, 40, 40);
+                ctx.drawImage(furnace.getOutput()!.item.getSprite(), ...furnace.getOutput()!.item.getClip(), furnaceUi.x + furnaceUi.width - 45, furnaceUi.y + 5, 40, 40);
                 ctx.fillText(furnace.getOutput()!.amount.toString(), furnaceUi.x + furnaceUi.width - 10, furnaceUi.y + 45);
             }
         }
@@ -100,7 +100,7 @@ export default class ForgeScene extends GenericScene {
                             this.player.removeItem(item, amount);
                         }
                     } else {
-                        EventBus.emit("open_furnace", furnace);
+                        EventBus.emit("scene:set", "furnace", furnace);
                     }
                     this.input.clicked = false;
                 }
@@ -114,7 +114,7 @@ export default class ForgeScene extends GenericScene {
             if (this.input.isMouseOver(anvil.rect)) {
                 EventBus.emit("set_tooltip", "Anvil");
                 if (this.input.clicked) {
-                    EventBus.emit("open_anvil", anvil);
+                    EventBus.emit("scene:set", "anvil");
                     this.input.clicked = false;
                 }
             }

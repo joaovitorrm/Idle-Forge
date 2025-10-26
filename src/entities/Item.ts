@@ -2,7 +2,9 @@ import { AssetManager } from "../core/AssetManager.js";
 import type { objectsAssets } from "../data/assets.js";
 import Rect from "../util/rect.js";
 
-export type OreType = "Copper" | "Gold" | "Coal";
+import oreData from "../data/oreData.js";
+
+type OreType = keyof typeof oreData;
 
 type SpriteKey = keyof typeof objectsAssets;
 
@@ -99,18 +101,26 @@ export abstract class Tool extends Item {
 }
 
 //========================================================
-// PIECE CLASS
+/*                      PIECE                           */
 
-export abstract class Piece extends Item {
+export class Piece extends Item {
     constructor(
         public oreType: OreType,
         public pieceType: PieceType
     ) {
-        const name = `${oreType} ${pieceType}`;
+        const name = `${oreType.charAt(0).toUpperCase() + oreType.slice(1)} ${pieceType}`;
         const spriteKey = `${oreType.toLocaleLowerCase()}${pieceType.split(" ").join("")}` as SpriteKey;
 
         super(name, spriteKey);
     }
+}
+
+for (const ore of Object.keys(oreData) as OreType[]) {
+    ["Pickaxe Head", "Handle", "Union", "Sword Head", "Sword Handle"].forEach(pieceType => {
+        Item.register(`${ore.charAt(0).toUpperCase() + ore.slice(1)} ${pieceType}`, class extends Piece {
+            constructor() { super(ore, pieceType as PieceType); }
+        });
+    });
 }
 
 //========================================================
@@ -144,23 +154,31 @@ export abstract class Melt extends Ore {
 /*                      TOOLS                           */
 
 export class Pickaxe extends Tool {
+    public damage : number;
+    public durability : number;
+    
     protected constructor(
-        name: string | null,
+        name: string,
         spriteKey: SpriteKey,
         combinedSprite: ImageBitmap,
-        public head: pickaxeHeadPiece,
-        public handle: handlePiece,
-        public union: unionPiece
+        public head: Piece,
+        public handle: Piece,
+        public union: Piece
     ) {
-
-        if (name === null) {
-            name = `${head.oreType} Pickaxe`;
-        }
-
         super(name, spriteKey, combinedSprite);
+
+        this.damage = 
+            oreData[head.oreType].head.damageImpact * 
+            oreData[handle.oreType].handle.damageImpactMultiplier * 
+            oreData[union.oreType].union.damageCutMultiplier;
+
+        this.durability = 
+            oreData[head.oreType].head.durability * 
+            oreData[handle.oreType].handle.durabilityMultiplier * 
+            oreData[union.oreType].union.durabilityMultiplier;
     }
 
-    static async create(name: string, head: pickaxeHeadPiece, handle: handlePiece, union: unionPiece) : Promise<Pickaxe> {
+    static async create(name: string | null, head: Piece, handle: Piece, union: Piece) : Promise<Pickaxe> {
         const combined = await AssetManager.getInstance().getCombinedImage(
             [
                 { spriteKey: handle.spriteKey, pos: new Rect(0, 0, 32, 32) },
@@ -172,7 +190,7 @@ export class Pickaxe extends Tool {
         );
 
         return new Pickaxe(
-            name ?? `${head.oreType} Pickaxe`,
+            name ?? `${head.oreType.charAt(0).toUpperCase() + head.oreType.slice(1)} Pickaxe`,
             head.spriteKey,
             combined,
             head,
@@ -183,61 +201,18 @@ export class Pickaxe extends Tool {
 }
 
 export class StarterPickaxe extends Pickaxe {
-    private constructor(name : string, key : SpriteKey, sprite : ImageBitmap, head : pickaxeHeadPiece, handle : handlePiece, union : unionPiece) {
+    private constructor(name : string, key : SpriteKey, sprite : ImageBitmap, head : Piece, handle : Piece, union : Piece) {
         super(name, key, sprite, head, handle, union);
     }
 
     static async create() {
-        const head = new pickaxeHeadPiece("Copper");
-        const handle = new handlePiece("Copper");
-        const union = new unionPiece("Gold");
-        return await Pickaxe.create("Starter Pickaxe", head, handle, union);
+        const head = new Piece("copper", "Pickaxe Head");
+        const handle = new Piece("copper", "Handle");
+        const union = new Piece("copper", "Union");
+        return await Pickaxe.create(null, head, handle, union);
     }
 
     getDamage() { return 1; }
-}
-
-//========================================================
-/*                      PIECES                          */
-
-export class pickaxeHeadPiece extends Piece {
-    constructor(
-        oreType: OreType
-    ) {
-        super(oreType, "Pickaxe Head");
-    }
-}
-
-export class handlePiece extends Piece {
-    constructor(
-        oreType: OreType
-    ) {
-        super(oreType, "Handle");
-    }
-}
-
-export class unionPiece extends Piece {
-    constructor(
-        oreType: OreType
-    ) {
-        super(oreType, "Union");
-    }
-}
-
-export class swordHeadPiece extends Piece {
-    constructor(
-        oreType: OreType
-    ) {
-        super(oreType, "Pickaxe Head");
-    }
-}
-
-export class swordHandlePiece extends Piece {
-    constructor(
-        oreType: OreType
-    ) {
-        super(oreType, "Sword Handle");
-    }
 }
 
 //========================================================
@@ -245,31 +220,31 @@ export class swordHandlePiece extends Piece {
 
 export class pickaxeHeadPlate extends Plate {
     constructor() { super("Pickaxe Head Plate", "pPickaxeHead", 3) }
-    getPiece(ore: Melt) { return new pickaxeHeadPiece(ore.outputType) }
+    getPiece(ore: Melt) { return new Piece(ore.outputType, "Pickaxe Head") }
 }
 Item.register("Pickaxe Head Plate", pickaxeHeadPlate);
 
 export class handlePlate extends Plate {
     constructor() { super("Handle Plate", "pHandle", 2) }
-    getPiece(ore: Melt) { return new handlePiece(ore.outputType) }
+    getPiece(ore: Melt) { return new Piece(ore.outputType, "Handle") }
 }
 Item.register("Handle Plate", handlePlate);
 
 export class unionPlate extends Plate {
     constructor() { super("Union Plate", "pUnion", 3) }
-    getPiece(ore: Melt) { return new handlePiece(ore.outputType) }
+    getPiece(ore: Melt) { return new Piece(ore.outputType, "Union") }
 }
 Item.register("Union Plate", unionPlate);
 
 export class swordHandlerPlate extends Plate {
     constructor() { super("Sword Handler Plate", "pSwordHandle", 1) }
-    getPiece(ore: Melt) { return new handlePiece(ore.outputType) }
+    getPiece(ore: Melt) { return new Piece(ore.outputType, "Sword Handle") }
 }
 Item.register("Sword Handler Plate", swordHandlerPlate);
 
 export class swordHeadPlate extends Plate {
     constructor() { super("Sword Head Plate", "pSwordHead", 3) }
-    getPiece(ore: Melt) { return new handlePiece(ore.outputType) }
+    getPiece(ore: Melt) { return new Piece(ore.outputType, "Sword Head") }
 }
 Item.register("Sword Head Plate", swordHeadPlate);
 
@@ -277,12 +252,12 @@ Item.register("Sword Head Plate", swordHeadPlate);
 /*                      MELTS                          */
 
 export class CopperOre extends Melt {
-    constructor() { super("Copper Ore", "copperOre", 1, "Copper", 5, 10) }
+    constructor() { super("Copper Ore", "copperOre", 1, "copper", 5, 10) }
 }
 Item.register("Copper Ore", CopperOre);
 
 export class GoldOre extends Melt {
-    constructor() { super("Gold Ore", "goldOre", 2, "Gold", 20, 15) }
+    constructor() { super("Gold Ore", "goldOre", 2, "gold", 20, 15) }
 }
 Item.register("Gold Ore", GoldOre);
 
@@ -293,50 +268,3 @@ export class CoalOre extends Fuel {
     constructor() { super("Coal Ore", "coalOre", 1, 10) }
 }
 Item.register("Coal Ore", CoalOre);
-
-
-//========================================================
-/*                      PIECES                          */
-
-export class CopperPickaxeHead extends Piece {
-    constructor() {
-        super("Copper", "Pickaxe Head");
-    }
-}
-Item.register("Copper Pickaxe Head", CopperPickaxeHead);
-
-export class CopperHandle extends Piece {
-    constructor() {
-        super("Copper", "Handle");
-    }
-}
-Item.register("Copper Handle", CopperHandle);
-
-export class CopperUnion extends Piece {
-    constructor() {
-        super("Copper", "Union");
-    }
-}
-Item.register("Copper Union", CopperUnion);
-
-export class GoldPickaxeHead extends Piece {
-    constructor() {
-        super("Gold", "Pickaxe Head");
-    }
-}
-Item.register("Gold Pickaxe Head", GoldPickaxeHead);
-
-export class GoldHandle extends Piece {
-    constructor() {
-        super("Gold", "Handle");
-    }
-}
-Item.register("Gold Handle", GoldHandle);
-
-export class GoldUnion extends Piece {
-    constructor() {
-        super("Gold", "Union");
-    }
-}
-Item.register("Gold Union", GoldUnion);
-

@@ -96,6 +96,6 @@ export default class Player {
     }
 
     getPickaxeDamage(): number {
-        return 1;
+        return this.gear.pickaxe ? this.gear.pickaxe.damage : 0;
     }
 }
