@@ -31,13 +31,6 @@ export class Game {
         await assetManager.loadAll();
 
         this.player.init();
-        this.uiManager.addHUDImageButton("top", "player_pickaxe", this.player.gear.pickaxe!.sprite, this.player.gear.pickaxe!.spriteClip, new Rect(10, 10, 30, 30));
-        this.uiManager.addButtonHover(
-            this.uiManager.getHUDButton("top", "player_pickaxe")!, 
-            new Rect(30, 0, 120, 35), 
-            `${this.player.gear.pickaxe!.name}`, 
-            `Damage: ${this.player.gear.pickaxe!.damage}`);
-
         this.sceneManager.setScene("forge");
     }
 

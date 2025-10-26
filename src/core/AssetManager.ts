@@ -1,4 +1,5 @@
 import { backgroundAssets, objectsAssets } from "../data/assets.js";
+import type Rect from "../util/rect.js";
 
 // Tipo genérico para map de assets
 
@@ -17,6 +18,19 @@ export class AssetManager {
             AssetManager.instance = new AssetManager();
         }
         return AssetManager.instance;
+    }
+
+    public async getCombinedImage(keys: { spriteKey: keyof typeof objectsAssets, pos: Rect }[], width: number, height: number): Promise<ImageBitmap> {
+        const canvas = new OffscreenCanvas(width, height);
+        const ctx = canvas.getContext("2d")!;
+
+        for (const { spriteKey, pos } of keys) {
+            const { img, clip } = this.getObjectImage(spriteKey)!;
+            ctx.drawImage(img, ...clip!, pos.x, pos.y, pos.width, pos.height);
+        }
+
+        const bitmap = await createImageBitmap(canvas);
+        return bitmap;
     }
 
     private async loadImage(name: string, src: string): Promise<HTMLImageElement> {

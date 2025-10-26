@@ -24,6 +24,7 @@ import QuestsScene from "../scenes/QuestsScene.js";
 import SmeltScene from "../scenes/SmeltScene.js";
 import FurnaceScene from "../scenes/FurnaceScene.js";
 import { EventBus } from "./EventBus.js";
+import { AnvilScene } from "../scenes/AnvilScene.js";
 
 // 🧩 Define os parâmetros específicos de cada cena
 interface SceneParamsMap {
@@ -31,7 +32,8 @@ interface SceneParamsMap {
     forge: [];
     quests: [];
     smelt: [];
-    furnace: [Furnace];  // requer uma Furnace
+    furnace: [Furnace];  // requer uma Furnace,
+    anvil: [];
 }
 
 
@@ -98,12 +100,14 @@ export class SceneManager {
         quests: QuestsScene,
         smelt: SmeltScene,
         furnace: FurnaceScene,
+        anvil: AnvilScene
     };
 
     public currentScene: SceneKey = "cave";
 
     constructor(protected input: InputManager, protected player: Player) {
         EventBus.on("open_furnace", (furnace: Furnace) => this.setScene("furnace", furnace));
+        EventBus.on("open_anvil", () => this.setScene("anvil"));
     }
 
     draw(ctx: CanvasRenderingContext2D) {

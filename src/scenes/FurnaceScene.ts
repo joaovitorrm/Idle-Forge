@@ -3,7 +3,7 @@ import type { InputManager } from "../core/InputManager.js";
 import type Furnace from "../entities/Furnace.js";
 import { Ore, Plate } from "../entities/Item.js";
 import type Player from "../entities/Player.js";
-import { LabelButton, type Button } from "../ui/uiElements/Button.js";
+import { LabelButton, type Button } from "../ui/uiElements/uiButton.js";
 import Rect from "../util/rect.js";
 import { GenericScene } from "./GenericScene.js";
 
@@ -74,13 +74,19 @@ export default class FurnaceScene extends GenericScene {
                 this.smeltProcess.amount += 1;
                 this.furnace.content[0]!.amount -= 1;
                 if (this.furnace.content[0]!.amount === 0) this.furnace.content.shift();
-            }
-            return;
+
+            }           
+        } else {
+            this.smeltProcess = { ore, amount: 1 };
+            this.furnace.content[0]!.amount -= 1;
+            this.meltedBackground.color = colors[ore.name as keyof typeof colors];
         }
 
-        this.smeltProcess = { ore, amount: 1 };
-        this.furnace.content[0]!.amount -= 1;
-        this.meltedBackground.color = colors[ore.name as keyof typeof colors];
+        if (this.smeltProcess.amount === this.activePlate.oreNeededAmount) {
+            this.player.addItem(this.activePlate!.getPiece(ore), 1);
+            this.activePlate = null;
+            this.smeltProcess = null;            
+        }
     }
 
     drawPlate(ctx: CanvasRenderingContext2D) {
@@ -109,12 +115,23 @@ export default class FurnaceScene extends GenericScene {
             ctx.textBaseline = "top";
             ctx.font = "20px MonogramFont";
 
+            ctx.fillText(
+                this.activePlate.name,
+                this.platePos.x + this.platePos.width / 2,
+                this.platePos.y + this.platePos.height)
+
             const filledAmount = this.smeltProcess?.amount ?? 0;
             ctx.fillText(
                 `${filledAmount}/${this.activePlate.oreNeededAmount}`,
                 this.platePos.x + this.platePos.width / 2,
-                this.platePos.y + this.platePos.height
+                this.platePos.y + this.platePos.height + 15
             );
+        } else {
+            ctx.fillStyle = "black";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "top";
+            ctx.font = "20px MonogramFont";
+            ctx.fillText("No Plate", this.platePos.x + this.platePos.width / 2, this.platePos.y + this.platePos.height)
         }
     }
 
@@ -132,10 +149,17 @@ export default class FurnaceScene extends GenericScene {
         ctx.font = "20px MonogramFont";
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
+
+        ctx.fillText(
+            "Melted Ores",
+            this.furnaceTank.rect.x + this.furnaceTank.rect.width / 2,
+            this.furnaceTank.rect.y + this.furnaceTank.rect.height
+        )
+
         ctx.fillText(
             `${this.furnace.content.reduce((a, b) => a + b.amount, 0)}/${this.furnace.maxSpaceAmount}`,
             this.furnaceTank.rect.x + this.furnaceTank.rect.width / 2,
-            this.furnaceTank.rect.y + this.furnaceTank.rect.height
+            this.furnaceTank.rect.y + this.furnaceTank.rect.height + 15
         );
     }
 

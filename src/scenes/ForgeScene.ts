@@ -6,10 +6,13 @@ import type Player from "../entities/Player.js";
 import { GenericScene } from "./GenericScene.js";
 import { EventBus } from "../core/EventBus.js";
 import { Fuel, Melt } from "../entities/Item.js";
+import { Anvil } from "../entities/Anvil.js";
+import { drawHitBox } from "../util/utils.js";
 
 export default class ForgeScene extends GenericScene {
 
     private furnaces: Furnace[] = [];
+    private anvils : Anvil[] = [];
 
     constructor(protected input: InputManager, protected player: Player) {
 
@@ -19,11 +22,20 @@ export default class ForgeScene extends GenericScene {
         super(input, player, sprite!);
 
         this.furnaces.push(new Furnace(new Rect(220, 200, 120, 120 * 1.6)));
+        this.anvils.push(new Anvil(new Rect(400, 332, 100, 60)));
     }
 
     draw(ctx: CanvasRenderingContext2D): void {
         super.draw(ctx);
 
+        this.drawFurnaceUI(ctx);
+
+        for (const anvil of this.anvils) {
+            anvil.draw(ctx);
+        }
+    }
+
+    drawFurnaceUI(ctx: CanvasRenderingContext2D): void {
         for (const furnace of this.furnaces) {
             furnace.draw(ctx);
 
@@ -67,6 +79,16 @@ export default class ForgeScene extends GenericScene {
             }
         }
 
+        this.handleFurnaceInteraction();
+
+        for (const anvil of this.anvils) {
+            anvil.update(dt);
+        }
+
+        this.handleAnvilInteraction();
+    }
+
+    handleFurnaceInteraction() {
         for (const furnace of this.furnaces) {
             if (this.input.clicked) {
                 if (furnace.rect.collide(this.input.getRect())) {
@@ -83,6 +105,18 @@ export default class ForgeScene extends GenericScene {
                     this.input.clicked = false;
                 }
                 this.player.holdingItem = null;
+            }
+        }
+    }
+
+    handleAnvilInteraction() {
+        for (const anvil of this.anvils) {
+            if (this.input.isMouseOver(anvil.rect)) {
+                EventBus.emit("set_tooltip", "Anvil");
+                if (this.input.clicked) {
+                    EventBus.emit("open_anvil", anvil);
+                    this.input.clicked = false;
+                }
             }
         }
     }

@@ -3,7 +3,7 @@ import { HUDConfig } from "../../config/hudConfig.js";
 import type { InputManager } from "../../core/InputManager.js";
 import type Player from "../../entities/Player.js";
 import Rect from "../../util/rect.js";
-import { ColorButton, type Button } from "../uiElements/Button.js";
+import { ColorButton, type Button } from "../uiElements/uiButton.js";
 import { UIGeneric } from "./uiGeneric.js";
 
 export default class UIBottom extends UIGeneric {

@@ -4,7 +4,7 @@ import type { InputManager } from "../../core/InputManager.js";
 import type Player from "../../entities/Player.js";
 
 import Rect from "../../util/rect.js";
-import { Button, ColorButton } from "../uiElements/Button.js";
+import { Button, ColorButton } from "../uiElements/uiButton.js";
 import { UIGeneric } from "./uiGeneric.js";
 
 export default class UILeft extends UIGeneric {

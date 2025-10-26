@@ -81,19 +81,15 @@ export class ColorButton extends Button {
 }
 
 export class ImageButton extends Button {
-
-    protected clip: [number, number, number, number] | null = null;
     constructor(
         sRect: Rect,
         dRect: Rect,
         input: InputManager,
-        protected image: HTMLImageElement,
-        clip: [number, number, number, number] | null = null,
+        protected image: HTMLImageElement | ImageBitmap,
+        protected clip: [number, number, number, number] | null = null,
         onClick : ((args?: unknown) => void) | null = null
     ) {
         super(sRect, dRect, input, onClick);
-
-        if (clip !== null) this.clip = clip;
     }
 
     draw(ctx: CanvasRenderingContext2D) {

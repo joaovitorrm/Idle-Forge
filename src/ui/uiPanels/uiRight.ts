@@ -6,9 +6,9 @@ import type { Inventories } from "../../entities/Player.js";
 import type Player from "../../entities/Player.js";
 import Rect from "../../util/rect.js";
 import { drawHitBox } from "../../util/utils.js";
-import { Button, ColorButton, LabelButton } from "../uiElements/Button.js";
+import { Button, ColorButton, LabelButton } from "../uiElements/uiButton.js";
 import { UIGeneric } from "./uiGeneric.js";
-import UIInventory, { OreInventory, PiecesInventory, PlateInventory } from "./uiInventory.js";
+import UIInventory, { OreInventory, PiecesInventory, PlateInventory, ToolsInventory } from "./uiInventory.js";
 
 export default class UIRight extends UIGeneric {
 
@@ -22,6 +22,7 @@ export default class UIRight extends UIGeneric {
             ["ores", new OreInventory(this.input, this.player, this.rect, this.rect, 20, 60)],
             ["plates", new PlateInventory(this.input, this.player, this.rect, this.rect, 20, 40)],
             ["pieces", new PiecesInventory(this.input, this.player, this.rect, this.rect, 20, 40)],
+            ["tools", new ToolsInventory(this.input, this.player, this.rect, this.rect, 20, 40)],
         ]
     );
 
@@ -41,13 +42,21 @@ export default class UIRight extends UIGeneric {
         this.reduceBtn = new ColorButton("lime", this.rect, new Rect(-30, 0, 30, 30), this.input, () => this.resize());
 
         this.buttons.set("ores",
-            new LabelButton("Ores", "black", "white", 16, this.rect, new Rect(10, 10, 30, 15), this.input, () => this.currentPage = "ores"));
+            new LabelButton("Ores", "black", "white", 16, this.rect, new Rect(0, 0, 30, 30), this.input, () => this.setPage("ores")));
 
         this.buttons.set("plates",
-            new LabelButton("Plates", "black", "white", 16, this.rect, new Rect(45, 10, 40, 15), this.input, () => this.currentPage = "plates"));
+            new LabelButton("Plates", "black", "white", 16, this.rect, new Rect(30, 0, 50, 30), this.input, () => this.setPage("plates")));
 
         this.buttons.set("pieces",
-            new LabelButton("Pieces", "black", "white", 16, this.rect, new Rect(90, 10, 40, 15), this.input, () => this.currentPage = "pieces"));
+            new LabelButton("Pieces", "black", "white", 16, this.rect, new Rect(80, 0, 40, 30), this.input, () => this.setPage("pieces")));
+
+        this.buttons.set("tools", 
+            new LabelButton("Tools", "black", "white", 16, this.rect, new Rect(120, 0, 40, 30), this.input, () => this.setPage("tools")));
+    }
+
+    setPage(page : keyof Inventories) : void {
+        this.currentPage = page;
+        EventBus.emit("inventory:update");
     }
 
     resize(): void {
@@ -89,6 +98,9 @@ export default class UIRight extends UIGeneric {
 
     update(dt: number): void {
         this.reduceBtn.update(dt);
+
+        if (this.isReduced) return;
+
         this.pages.get(this.currentPage)!.update(dt);
         for (const [_, button] of this.buttons) button.update(dt);
     }
@@ -106,7 +118,7 @@ export default class UIRight extends UIGeneric {
         for (const i of this.player.getInventory(this.currentPage)) {
             const inventorySlot = new Rect(this.rect.x + 40, this.rect.y + 80 + (80 * c) + (10 * c), this.rect.width - 80, 60);
 
-            ctx.drawImage(i[1].item.sprite, ...i[1].item.spriteClip,
+            ctx.drawImage(i[1].item.getSprite(), ...i[1].item.getClip(),
                 inventorySlot.x + inventorySlot.width / 2 - 50, inventorySlot.y + inventorySlot.height / 2 - 32, 64, 64);
 
             ctx.font = "22px MonogramFont";

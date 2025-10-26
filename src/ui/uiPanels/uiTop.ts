@@ -1,8 +1,10 @@
 import { GameConfig } from "../../config/gameConfig.js";
 import { HUDConfig } from "../../config/hudConfig.js";
+import { EventBus } from "../../core/EventBus.js";
 import type { InputManager } from "../../core/InputManager.js";
 import type Player from "../../entities/Player.js";
 import Rect from "../../util/rect.js";
+import { ImageButton } from "../uiElements/uiButton.js";
 import { UIGeneric } from "./uiGeneric.js";
 
 export default class UITop extends UIGeneric {
@@ -16,6 +18,8 @@ export default class UITop extends UIGeneric {
         );
 
         super(rect, input, player);
+
+        EventBus.on("inventory:loaded", () => this.load());
     }
 
     draw(ctx: CanvasRenderingContext2D): void {
@@ -29,6 +33,12 @@ export default class UITop extends UIGeneric {
 
     update(dt: number): void {
         for (const [_, button] of this.buttons) button.update(dt);
+    }
+
+    private load() {
+        this.buttons.set("player_pickaxe",
+            new ImageButton(this.rect, new Rect(0, 5, 50, 50), this.input, this.player.gear.pickaxe!.getSprite()!, this.player.gear.pickaxe!.getClip())
+        )
     }
 
 }

@@ -2,7 +2,7 @@ import { EventBus } from "../core/EventBus.js";
 import type { InputManager } from "../core/InputManager.js";
 import type Player from "../entities/Player.js";
 import type Rect from "../util/rect.js";
-import { Button, ColorButton, ImageButton } from "./uiElements/Button.js";
+import { Button, ColorButton, ImageButton } from "./uiElements/uiButton.js";
 import UIHover from "./uiElements/uiHover.js";
 import { uiHUD } from "./uiPanels/uiHUD.js";
 
@@ -47,13 +47,13 @@ export class UIManager {
         this.hud.draw(ctx);
         this.hovers.forEach((hover) => hover.draw(ctx));
 
-        this.drawToolTip(ctx);
         this.drawHoldingItem(ctx);
+        this.drawToolTip(ctx);        
     }
 
     private drawHoldingItem(ctx: CanvasRenderingContext2D) {
         if (this.player.holdingItem) {
-            ctx.drawImage(this.player.holdingItem!.item.sprite, ...this.player.holdingItem!.item.spriteClip, this.input.x - 32, this.input.y - 32, 64, 64);
+            ctx.drawImage(this.player.holdingItem!.item.getSprite(), ...this.player.holdingItem!.item.getClip(), this.input.x - 32, this.input.y - 32, 64, 64);
 
             ctx.fillStyle = "white";
             ctx.font = "24px MonogramFont";
