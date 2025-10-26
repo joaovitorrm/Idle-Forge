@@ -41,6 +41,9 @@ var quest_board_default = "./assets/quest_board-XAJFGID5.png";
 // src/assets/images/scenes/furnace.png
 var furnace_default = "./assets/furnace-BZOP7SRK.png";
 
+// src/assets/images/scenes/anvil.png
+var anvil_default = "./assets/anvil-2H2SATWT.png";
+
 // src/assets/images/items/ore.png
 var ore_default = "./assets/ore-42GGJZ2H.png";
 
@@ -48,33 +51,62 @@ var ore_default = "./assets/ore-42GGJZ2H.png";
 var tools_default = "./assets/tools-3GRJJX3W.png";
 
 // src/assets/images/items/plates.png
-var plates_default = "./assets/plates-IRE2YA32.png";
+var plates_default = "./assets/plates-6DFZ4TGJ.png";
+
+// src/assets/images/items/pieces.png
+var pieces_default = "./assets/pieces-3BWNPHF5.png";
+
+// src/assets/images/items/anvil.png
+var anvil_default2 = "./assets/anvil-ITOEGWA3.png";
 
 // src/data/assets.ts
 var backgroundAssets = {
   caveBackground: caverna_default,
   forgeBackground: forge_default,
   questsBackground: quest_board_default,
-  furnaceBackground: furnace_default
+  furnaceBackground: furnace_default,
+  anvilBackground: anvil_default
 };
-var objectsAssets = {
+var ores = {
   coalOre: { path: ore_default, clip: [0, 32 * 10, 32, 32] },
   copperOre: { path: ore_default, clip: [32, 32 * 10, 32, 32] },
   goldOre: { path: ore_default, clip: [32 * 3, 32 * 10, 32, 32] },
-  ironOre: { path: ore_default, clip: [0, 0, 32, 32] },
+  ironOre: { path: ore_default, clip: [0, 0, 32, 32] }
+};
+var forge = {
   furnace: { path: ore_default, clip: [0, 13 * 32, 32 * 2, 32 * 3] },
   furnaceAnimation1: { path: ore_default, clip: [32 * 2, 13 * 32, 32 * 2, 32 * 3] },
   furnaceAnimation2: { path: ore_default, clip: [32 * 4, 13 * 32, 32 * 2, 32 * 3] },
   furnaceAnimation3: { path: ore_default, clip: [32 * 6, 13 * 32, 32 * 2, 32 * 3] },
+  anvil: { path: anvil_default2, clip: [40, 150, 536, 308] }
+};
+var oreBoulders = {
   coalOreBoulder: { path: ore_default, clip: [0, 0, 32, 32] },
   copperOreBoulder: { path: ore_default, clip: [32, 0, 32, 32] },
-  goldOreBoulder: { path: ore_default, clip: [32 * 3, 0, 32, 32] },
-  stonePickaxe: { path: tools_default, clip: [16 * 5, 0, 16, 16] },
+  goldOreBoulder: { path: ore_default, clip: [32 * 3, 0, 32, 32] }
+};
+var plates = {
   pPickaxeHead: { path: plates_default, clip: [0, 32, 32, 32] },
   pHandle: { path: plates_default, clip: [0, 0, 32, 32] },
   pUnion: { path: plates_default, clip: [32, 0, 32, 32] },
-  pSwordHandler: { path: plates_default, clip: [32 * 2, 0, 32, 32] },
+  pSwordHandle: { path: plates_default, clip: [32 * 2, 0, 32, 32] },
   pSwordHead: { path: plates_default, clip: [0, 32 * 2, 32, 32] }
+};
+var pieces = {
+  copperPickaxeHead: { path: pieces_default, clip: [0, 0, 32, 32] },
+  copperHandle: { path: pieces_default, clip: [0, 32, 32, 32] },
+  copperUnion: { path: pieces_default, clip: [0, 32 * 2, 32, 32] },
+  goldPickaxeHead: { path: pieces_default, clip: [32, 0, 32, 32] },
+  goldHandle: { path: pieces_default, clip: [32, 32, 32, 32] },
+  goldUnion: { path: pieces_default, clip: [32, 32 * 2, 32, 32] }
+};
+var objectsAssets = {
+  ...ores,
+  ...forge,
+  ...oreBoulders,
+  ...plates,
+  ...pieces,
+  stonePickaxe: { path: tools_default, clip: [16 * 5, 0, 16, 16] }
 };
 
 // src/core/AssetManager.ts
@@ -89,6 +121,16 @@ var AssetManager = class _AssetManager {
       _AssetManager.instance = new _AssetManager();
     }
     return _AssetManager.instance;
+  }
+  async getCombinedImage(keys, width, height) {
+    const canvas2 = new OffscreenCanvas(width, height);
+    const ctx2 = canvas2.getContext("2d");
+    for (const { spriteKey, pos } of keys) {
+      const { img, clip } = this.getObjectImage(spriteKey);
+      ctx2.drawImage(img, ...clip, pos.x, pos.y, pos.width, pos.height);
+    }
+    const bitmap = await createImageBitmap(canvas2);
+    return bitmap;
   }
   async loadImage(name, src) {
     return new Promise((resolve, reject) => {
@@ -124,19 +166,285 @@ var AssetManager = class _AssetManager {
   }
 };
 
+// src/util/rect.ts
+var Rect = class _Rect {
+  x;
+  y;
+  width;
+  height;
+  left;
+  right;
+  top;
+  bottom;
+  constructor(x, y, width, height) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+    this.left = x;
+    this.right = x + width;
+    this.top = y;
+    this.bottom = y + height;
+  }
+  contains(x, y) {
+    return x >= this.x && x < this.x + this.width && y >= this.y && y < this.y + this.height;
+  }
+  collide(rect) {
+    return this.contains(rect.x, rect.y) || this.contains(rect.x + rect.width, rect.y) || this.contains(rect.x, rect.y + rect.height) || this.contains(rect.x + rect.width, rect.y + rect.height);
+  }
+  copy() {
+    return new _Rect(this.x, this.y, this.width, this.height);
+  }
+  translate(x, y) {
+    return new _Rect(this.x + x, this.y + y, this.width, this.height);
+  }
+  resize(width, height) {
+    return new _Rect(this.x, this.y, width, height);
+  }
+  scale(scale) {
+    return new _Rect(this.x, this.y, this.width * scale, this.height * scale);
+  }
+  center() {
+    return new _Rect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
+  }
+  getCenterX() {
+    return this.x + this.width / 2;
+  }
+  getCenterY() {
+    return this.y + this.height / 2;
+  }
+};
+
+// src/data/oreData.ts
+var oreTypes = {
+  "copper": {
+    head: {
+      name: "Copper",
+      damageCut: 6,
+      damageImpact: 5,
+      durability: 120,
+      weight: 1.5,
+      special: "Male\xE1vel, f\xE1cil de moldar, n\xE3o muito resistente"
+    },
+    handle: {
+      name: "Copper",
+      damageCutMultiplier: 1,
+      damageImpactMultiplier: 1,
+      durabilityMultiplier: 1,
+      weight: 1,
+      special: "Conduz eletricidade, n\xE3o muito leve"
+    },
+    union: {
+      name: "Copper",
+      damageCutMultiplier: 1,
+      damageImpactMultiplier: 1,
+      durabilityMultiplier: 0.9,
+      weight: 0.5,
+      special: "Solda bem com outros metais"
+    }
+  },
+  "iron": {
+    head: {
+      name: "Iron",
+      damageCut: 8,
+      damageImpact: 10,
+      durability: 250,
+      weight: 2,
+      special: "Vers\xE1til, confi\xE1vel para l\xE2minas e pontas"
+    },
+    handle: {
+      name: "Iron",
+      damageCutMultiplier: 1.05,
+      damageImpactMultiplier: 1.1,
+      durabilityMultiplier: 1.1,
+      weight: 1.8,
+      special: "Mais pesado, resistente a impacto"
+    },
+    union: {
+      name: "Iron",
+      damageCutMultiplier: 1,
+      damageImpactMultiplier: 1.05,
+      durabilityMultiplier: 1.05,
+      weight: 1,
+      special: "F\xE1cil de forjar e soldar"
+    }
+  },
+  "gold": {
+    head: {
+      name: "Gold",
+      damageCut: 6,
+      damageImpact: 5,
+      durability: 150,
+      weight: 2,
+      special: "Male\xE1vel, n\xE3o enferruja, aumenta valor"
+    },
+    handle: {
+      name: "Gold",
+      damageCutMultiplier: 1,
+      damageImpactMultiplier: 1,
+      durabilityMultiplier: 1,
+      weight: 1.5,
+      special: "Luxuoso, condu\xE7\xE3o de magia"
+    },
+    union: {
+      name: "Gold",
+      damageCutMultiplier: 1,
+      damageImpactMultiplier: 1,
+      durabilityMultiplier: 1,
+      weight: 0.5,
+      special: "Excelente para ornamentos"
+    }
+  },
+  "bronze": {
+    head: {
+      name: "Bronze",
+      damageCut: 7,
+      damageImpact: 6,
+      durability: 200,
+      weight: 1.8,
+      special: "Mais resistente que cobre, f\xE1cil de moldar"
+    },
+    handle: {
+      name: "Bronze",
+      damageCutMultiplier: 1,
+      damageImpactMultiplier: 1,
+      durabilityMultiplier: 1.05,
+      weight: 1.2,
+      special: "Leve, resistente a desgaste"
+    },
+    union: {
+      name: "Bronze",
+      damageCutMultiplier: 1,
+      damageImpactMultiplier: 1,
+      durabilityMultiplier: 1.05,
+      weight: 0.5,
+      special: "Boa liga\xE7\xE3o entre partes"
+    }
+  },
+  "steel": {
+    head: {
+      name: "Steel",
+      damageCut: 12,
+      damageImpact: 15,
+      durability: 400,
+      weight: 2.2,
+      special: "Muito vers\xE1til, \xF3timo equil\xEDbrio"
+    },
+    handle: {
+      name: "Steel",
+      damageCutMultiplier: 1.05,
+      damageImpactMultiplier: 1.05,
+      durabilityMultiplier: 1.1,
+      weight: 2,
+      special: "Resistente e firme"
+    },
+    union: {
+      name: "Steel",
+      damageCutMultiplier: 1,
+      damageImpactMultiplier: 1.05,
+      durabilityMultiplier: 1.1,
+      weight: 1,
+      special: "Alta durabilidade"
+    }
+  },
+  "quartz": {
+    head: { name: "Quartz", damageCut: 5, damageImpact: 4, durability: 80, weight: 1, special: "Pode formar l\xE2minas afiadas, fr\xE1gil" },
+    handle: { name: "Quartz", damageCutMultiplier: 0.95, damageImpactMultiplier: 0.95, durabilityMultiplier: 0.9, weight: 0.8, special: "Fr\xE1gil, decorativo" },
+    union: { name: "Quartz", damageCutMultiplier: 0.9, damageImpactMultiplier: 0.9, durabilityMultiplier: 0.85, weight: 0.5, special: "Fr\xE1gil, apenas para encaixe leve" }
+  },
+  "topaz": {
+    head: { name: "Topaz", damageCut: 12, damageImpact: 10, durability: 300, weight: 1.5, special: "Resistente ao desgaste, bom para armas afiadas" },
+    handle: { name: "Topaz", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1.2, special: "Leve e resistente" },
+    union: { name: "Topaz", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Mant\xE9m estabilidade" }
+  },
+  "ruby": {
+    head: { name: "Ruby", damageCut: 15, damageImpact: 12, durability: 350, weight: 1.5, special: "Perfura armaduras leves" },
+    handle: { name: "Ruby", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1.2, special: "Resistente a impactos" },
+    union: { name: "Ruby", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Mant\xE9m a arma firme" }
+  },
+  "emerald": {
+    head: { name: "Emerald", damageCut: 14, damageImpact: 11, durability: 320, weight: 1.5, special: "Dano extra contra criaturas m\xEDsticas" },
+    handle: { name: "Emerald", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1.2, special: "Boa empunhadura" },
+    union: { name: "Emerald", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Est\xE1vel" }
+  },
+  "sapphire": {
+    head: { name: "Sapphire", damageCut: 16, damageImpact: 13, durability: 370, weight: 1.5, special: "Resistente ao calor e fogo" },
+    handle: { name: "Sapphire", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1.2, special: "Leve e resistente" },
+    union: { name: "Sapphire", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Mant\xE9m firme, resistente ao calor" }
+  },
+  "diamond": {
+    head: { name: "Diamond", damageCut: 25, damageImpact: 20, durability: 1e3, weight: 1, special: "O mais duro, corta quase tudo" },
+    handle: { name: "Diamond", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1, special: "Muito resistente, mas fr\xE1gil lateralmente" },
+    union: { name: "Diamond", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Dif\xEDcil de unir, mas extremamente forte" }
+  },
+  "mithril": {
+    head: { name: "Mithril", damageCut: 20, damageImpact: 18, durability: 800, weight: 0.8, special: "Leve e resistente, lend\xE1rio" },
+    handle: { name: "Mithril", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.1, weight: 0.7, special: "Melhora manuseio e durabilidade" },
+    union: { name: "Mithril", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1.05, weight: 0.3, special: "Mant\xE9m firme e leve" }
+  },
+  "adamantium": {
+    head: { name: "Adamantium", damageCut: 30, damageImpact: 28, durability: 1200, weight: 1.5, special: "Extremamente resistente, lend\xE1rio" },
+    handle: { name: "Adamantium", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1.2, special: "Firme e est\xE1vel" },
+    union: { name: "Adamantium", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Mant\xE9m for\xE7a m\xE1xima" }
+  },
+  "obsidian": {
+    head: { name: "Obsidian", damageCut: 18, damageImpact: 10, durability: 70, weight: 1, special: "Muito afiado, mas fr\xE1gil" },
+    handle: { name: "Obsidian", damageCutMultiplier: 0.95, damageImpactMultiplier: 0.95, durabilityMultiplier: 0.9, weight: 0.8, special: "Decorativo, empunhadura fr\xE1gil" },
+    union: { name: "Obsidian", damageCutMultiplier: 0.9, damageImpactMultiplier: 0.9, durabilityMultiplier: 0.85, weight: 0.5, special: "Fr\xE1gil, apenas para encaixe leve" }
+  },
+  "amethyst": {
+    head: { name: "Amethyst", damageCut: 14, damageImpact: 12, durability: 200, weight: 1.3, special: "Raro, Head m\xE1gico" },
+    handle: { name: "Amethyst", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1, special: "B\xF4nus m\xE1gico leve" },
+    union: { name: "Amethyst", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Mant\xE9m estabilidade e magia" }
+  },
+  "garnet": {
+    head: { name: "Garnet", damageCut: 12, damageImpact: 10, durability: 220, weight: 1.3, special: "Duro, mas n\xE3o t\xE3o resistente quanto Ruby" },
+    handle: { name: "Garnet", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1, special: "Empunhadura est\xE1vel" },
+    union: { name: "Garnet", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Mant\xE9m firme" }
+  },
+  "dragonbone": {
+    head: { name: "Dragonbone", damageCut: 18, damageImpact: 20, durability: 500, weight: 1, special: "Leve, resistente, lend\xE1rio" },
+    handle: { name: "Dragonbone", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 0.8, special: "Melhora manuseio e durabilidade" },
+    union: { name: "Dragonbone", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1.05, weight: 0.3, special: "Firme e leve" }
+  },
+  "soulstone": {
+    head: { name: "Soulstone", damageCut: 16, damageImpact: 14, durability: 400, weight: 1.2, special: "Aplica efeitos m\xE1gicos" },
+    handle: { name: "Soulstone", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1, special: "Amplifica magia da Head" },
+    union: { name: "Soulstone", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Mant\xE9m conex\xE3o m\xE1gica est\xE1vel" }
+  },
+  "voidmetal": {
+    head: { name: "Voidmetal", damageCut: 28, damageImpact: 25, durability: 1e3, weight: 1.5, special: "Resistente a magia, lend\xE1rio" },
+    handle: { name: "Voidmetal", damageCutMultiplier: 1.05, damageImpactMultiplier: 1.05, durabilityMultiplier: 1.05, weight: 1.2, special: "Est\xE1vel, resistente" },
+    union: { name: "Voidmetal", damageCutMultiplier: 1, damageImpactMultiplier: 1, durabilityMultiplier: 1, weight: 0.5, special: "Mant\xE9m for\xE7a m\xE1xima e magia" }
+  }
+};
+var oreData_default = oreTypes;
+
 // src/entities/Item.ts
 var Item = class _Item {
-  constructor(name, sprite, spriteClip) {
+  constructor(name, spriteKey, combinedSprite = null) {
     this.name = name;
-    this.sprite = sprite;
-    this.spriteClip = spriteClip;
+    this.spriteKey = spriteKey;
+    this.combinedSprite = combinedSprite;
+    if (combinedSprite) {
+      this.sprite = { img: combinedSprite, clip: [0, 0, combinedSprite.width, combinedSprite.height] };
+    } else {
+      const assetManager = AssetManager.getInstance();
+      this.sprite = assetManager.getObjectImage(spriteKey);
+    }
   }
-  spriteKey = "";
+  sprite;
+  getSprite() {
+    return this.sprite.img;
+  }
+  getClip() {
+    return this.sprite.clip;
+  }
   toJSON() {
     return {
       name: this.name,
       spriteKey: this.spriteKey,
-      spriteClip: this.spriteClip
+      spriteClip: this.sprite.clip
     };
   }
   static registry = {};
@@ -148,121 +456,164 @@ var Item = class _Item {
     if (!ClassRef) throw new Error(`Item type "${data.name}" n\xE3o registrado.`);
     const instance = new ClassRef();
     instance.spriteKey = data.spriteKey;
-    instance.spriteClip = data.spriteClip;
+    instance.sprite.clip = data.spriteClip;
     return instance;
   }
 };
 var Ore = class extends Item {
-  constructor(name, sprite, spriteClip, tier) {
-    super(name, sprite, spriteClip);
+  constructor(name, spriteKey, tier) {
+    super(name, spriteKey);
     this.tier = tier;
   }
 };
+var Plate = class extends Item {
+  constructor(name, spriteKey, oreNeededAmount) {
+    super(name, spriteKey);
+    this.oreNeededAmount = oreNeededAmount;
+  }
+};
+var Tool = class extends Item {
+  constructor(name, spriteKey, combinedSprite) {
+    super(name, spriteKey, combinedSprite);
+  }
+};
+var Piece = class extends Item {
+  constructor(oreType, pieceType) {
+    const name = `${oreType.charAt(0).toUpperCase() + oreType.slice(1)} ${pieceType}`;
+    const spriteKey = `${oreType.toLocaleLowerCase()}${pieceType.split(" ").join("")}`;
+    super(name, spriteKey);
+    this.oreType = oreType;
+    this.pieceType = pieceType;
+  }
+};
+for (const ore of Object.keys(oreData_default)) {
+  ["Pickaxe Head", "Handle", "Union", "Sword Head", "Sword Handle"].forEach((pieceType) => {
+    Item.register(`${ore.charAt(0).toUpperCase() + ore.slice(1)} ${pieceType}`, class extends Piece {
+      constructor() {
+        super(ore, pieceType);
+      }
+    });
+  });
+}
 var Fuel = class extends Ore {
-  constructor(name, sprite, spriteClip, tier, burnTime) {
-    super(name, sprite, spriteClip, tier);
+  constructor(name, spriteKey, tier, burnTime) {
+    super(name, spriteKey, tier);
     this.burnTime = burnTime;
   }
 };
 var Melt = class extends Ore {
-  constructor(name, sprite, spriteClip, tier, outputType, meltTime) {
-    super(name, sprite, spriteClip, tier);
+  constructor(name, spriteKey, tier, outputType, meltTime, timeToSolidify) {
+    super(name, spriteKey, tier);
     this.outputType = outputType;
     this.meltTime = meltTime;
+    this.timeToSolidify = timeToSolidify;
   }
 };
-var Pickaxe = class extends Item {
-  constructor(name, sprite, spriteClip, damage) {
-    super(name, sprite, spriteClip);
-    this.damage = damage;
+var Pickaxe = class _Pickaxe extends Tool {
+  constructor(name, spriteKey, combinedSprite, head, handle, union) {
+    super(name, spriteKey, combinedSprite);
+    this.head = head;
+    this.handle = handle;
+    this.union = union;
+    this.damage = oreData_default[head.oreType].head.damageImpact * oreData_default[handle.oreType].handle.damageImpactMultiplier * oreData_default[union.oreType].union.damageCutMultiplier;
+    this.durability = oreData_default[head.oreType].head.durability * oreData_default[handle.oreType].handle.durabilityMultiplier * oreData_default[union.oreType].union.durabilityMultiplier;
+  }
+  damage;
+  durability;
+  static async create(name, head, handle, union) {
+    const combined = await AssetManager.getInstance().getCombinedImage(
+      [
+        { spriteKey: handle.spriteKey, pos: new Rect(0, 0, 32, 32) },
+        { spriteKey: head.spriteKey, pos: new Rect(7, -7, 32, 32) },
+        { spriteKey: union.spriteKey, pos: new Rect(9, -9, 32, 32) }
+      ],
+      32,
+      32
+    );
+    return new _Pickaxe(
+      name ?? `${head.oreType.charAt(0).toUpperCase() + head.oreType.slice(1)} Pickaxe`,
+      head.spriteKey,
+      combined,
+      head,
+      handle,
+      union
+    );
   }
 };
-var Plate = class extends Item {
-  constructor(name, sprite, spriteClip) {
-    super(name, sprite, spriteClip);
-  }
-};
-var pPickaxeHead = class extends Plate {
-  constructor() {
-    const assetManager = AssetManager.getInstance();
-    const { img, clip } = assetManager.getObjectImage("pPickaxeHead");
-    super("Pickaxe Head Plate", img, clip);
-    this.spriteKey = "pPickaxeHead";
-  }
-};
-Item.register("Pickaxe Head Plate", pPickaxeHead);
-var pHandle = class extends Plate {
-  constructor() {
-    const assetManager = AssetManager.getInstance();
-    const { img, clip } = assetManager.getObjectImage("pHandle");
-    super("Handle Plate", img, clip);
-    this.spriteKey = "pHandle";
-  }
-};
-Item.register("Handle Plate", pHandle);
-var pUnion = class extends Plate {
-  constructor() {
-    const assetManager = AssetManager.getInstance();
-    const { img, clip } = assetManager.getObjectImage("pUnion");
-    super("Union Plate", img, clip);
-    this.spriteKey = "pUnion";
-  }
-};
-Item.register("Union Plate", pUnion);
-var pSwordHandler = class extends Plate {
-  constructor() {
-    const assetsManager = AssetManager.getInstance();
-    const { img, clip } = assetsManager.getObjectImage("pSwordHandler");
-    super("Sword Handler Plate", img, clip);
-    this.spriteKey = "pSwordHandler";
-  }
-};
-Item.register("Sword Handler Plate", pSwordHandler);
-var pSwordHead = class extends Plate {
-  constructor() {
-    const assetsManager = AssetManager.getInstance();
-    const { img, clip } = assetsManager.getObjectImage("pSwordHead");
-    super("Sword Head Plate", img, clip);
-    this.spriteKey = "pSwordHead";
-  }
-};
-Item.register("Sword Head Plate", pSwordHead);
 var StarterPickaxe = class extends Pickaxe {
-  constructor() {
-    const assetManager = AssetManager.getInstance();
-    const { img, clip } = assetManager.getObjectImage("stonePickaxe");
-    super("Stone Pickaxe", img, clip, 1);
-    this.spriteKey = "stonePickaxe";
+  constructor(name, key, sprite, head, handle, union) {
+    super(name, key, sprite, head, handle, union);
+  }
+  static async create() {
+    const head = new Piece("copper", "Pickaxe Head");
+    const handle = new Piece("copper", "Handle");
+    const union = new Piece("copper", "Union");
+    return await Pickaxe.create(null, head, handle, union);
   }
   getDamage() {
-    return this.damage;
+    return 1;
   }
 };
-Item.register("Stone Pickaxe", StarterPickaxe);
+var pickaxeHeadPlate = class extends Plate {
+  constructor() {
+    super("Pickaxe Head Plate", "pPickaxeHead", 3);
+  }
+  getPiece(ore) {
+    return new Piece(ore.outputType, "Pickaxe Head");
+  }
+};
+Item.register("Pickaxe Head Plate", pickaxeHeadPlate);
+var handlePlate = class extends Plate {
+  constructor() {
+    super("Handle Plate", "pHandle", 2);
+  }
+  getPiece(ore) {
+    return new Piece(ore.outputType, "Handle");
+  }
+};
+Item.register("Handle Plate", handlePlate);
+var unionPlate = class extends Plate {
+  constructor() {
+    super("Union Plate", "pUnion", 3);
+  }
+  getPiece(ore) {
+    return new Piece(ore.outputType, "Union");
+  }
+};
+Item.register("Union Plate", unionPlate);
+var swordHandlerPlate = class extends Plate {
+  constructor() {
+    super("Sword Handler Plate", "pSwordHandle", 1);
+  }
+  getPiece(ore) {
+    return new Piece(ore.outputType, "Sword Handle");
+  }
+};
+Item.register("Sword Handler Plate", swordHandlerPlate);
+var swordHeadPlate = class extends Plate {
+  constructor() {
+    super("Sword Head Plate", "pSwordHead", 3);
+  }
+  getPiece(ore) {
+    return new Piece(ore.outputType, "Sword Head");
+  }
+};
+Item.register("Sword Head Plate", swordHeadPlate);
 var CopperOre = class extends Melt {
   constructor() {
-    const assetManager = AssetManager.getInstance();
-    const { img, clip } = assetManager.getObjectImage("copperOre");
-    super("Copper Ore", img, clip, 1, "copper", 5);
-    this.spriteKey = "copperOre";
+    super("Copper Ore", "copperOre", 1, "copper", 5, 10);
   }
 };
 Item.register("Copper Ore", CopperOre);
 var GoldOre = class extends Melt {
   constructor() {
-    const assetManager = AssetManager.getInstance();
-    const { img, clip } = assetManager.getObjectImage("goldOre");
-    super("Gold Ore", img, clip, 2, "gold", 20);
-    this.spriteKey = "goldOre";
+    super("Gold Ore", "goldOre", 2, "gold", 20, 15);
   }
 };
 Item.register("Gold Ore", GoldOre);
 var CoalOre = class extends Fuel {
   constructor() {
-    const assetManager = AssetManager.getInstance();
-    const { img, clip } = assetManager.getObjectImage("coalOre");
-    super("Coal Ore", img, clip, 1, 10);
-    this.spriteKey = "coalOre";
+    super("Coal Ore", "coalOre", 1, 10);
   }
 };
 Item.register("Coal Ore", CoalOre);
@@ -332,27 +683,27 @@ var Player = class {
   money = 0;
   inventories = {
     ores: new Inventory([Ore], "ores"),
-    plates: new Inventory([Plate], "plates")
-    //pieces : new Inventory<Piece>([Piece], "pieces"),
-    //tools : new Inventory<Tool>([Tool], "tools")
+    plates: new Inventory([Plate], "plates"),
+    pieces: new Inventory([Piece], "pieces"),
+    tools: new Inventory([Tool], "tools")
   };
   gear = {
     "pickaxe": null
   };
   holdingItem = null;
   //public unlockedPlates : Map<string, Plate> = new Map();
-  init() {
+  async init() {
     if (localStorage.getItem("playerData")) {
       const playerData = JSON.parse(localStorage.getItem("playerData"));
       this.money = playerData.money;
       this.gear = playerData.gear;
     } else {
-      this.gear = { "pickaxe": new StarterPickaxe() };
-      this.inventories.plates.addItem(new pPickaxeHead(), 1);
-      this.inventories.plates.addItem(new pHandle(), 1);
-      this.inventories.plates.addItem(new pUnion(), 1);
-      this.inventories.plates.addItem(new pSwordHead(), 1);
-      this.inventories.plates.addItem(new pSwordHandler(), 1);
+      this.gear = { "pickaxe": await StarterPickaxe.create() };
+      this.inventories.plates.addItem(new pickaxeHeadPlate(), 1);
+      this.inventories.plates.addItem(new handlePlate(), 1);
+      this.inventories.plates.addItem(new unionPlate(), 1);
+      this.inventories.plates.addItem(new swordHeadPlate(), 1);
+      this.inventories.plates.addItem(new swordHandlerPlate(), 1);
     }
     Object.values(this.inventories).forEach((inventory) => inventory.init());
     this.initEvents();
@@ -366,14 +717,19 @@ var Player = class {
       }
       this.holdingItem = { item, amount };
     });
+    EventBus.emit("inventory:loaded");
   }
   addItem(item, amount) {
     if (item instanceof Ore) this.inventories.ores.addItem(item, amount);
     if (item instanceof Plate) this.inventories.plates.addItem(item, amount);
+    if (item instanceof Piece) this.inventories.pieces.addItem(item, amount);
+    if (item instanceof Tool) this.inventories.tools.addItem(item, amount);
   }
   removeItem(item, amount) {
     if (item instanceof Ore) this.inventories.ores.removeItem(item, amount);
     if (item instanceof Plate) this.inventories.plates.removeItem(item, amount);
+    if (item instanceof Piece) this.inventories.pieces.removeItem(item, amount);
+    if (item instanceof Tool) this.inventories.tools.removeItem(item, amount);
   }
   getMoney() {
     return this.money;
@@ -387,14 +743,15 @@ var Player = class {
   getItemAmount(item) {
     if (item instanceof Ore) return this.inventories.ores.getItemAmount(item);
     if (item instanceof Plate) return this.inventories.plates.getItemAmount(item);
+    if (item instanceof Piece) return this.inventories.pieces.getItemAmount(item);
     return 0;
   }
   getPickaxeDamage() {
-    return this.gear.pickaxe?.damage ?? 0;
+    return this.gear.pickaxe ? this.gear.pickaxe.damage : 0;
   }
 };
 
-// src/ui/uiElements/Button.ts
+// src/ui/uiElements/uiButton.ts
 var Button = class {
   constructor(sRect, dRect, input, onClick = null) {
     this.sRect = sRect;
@@ -454,9 +811,8 @@ var ImageButton = class extends Button {
   constructor(sRect, dRect, input, image, clip = null, onClick = null) {
     super(sRect, dRect, input, onClick);
     this.image = image;
-    if (clip !== null) this.clip = clip;
+    this.clip = clip;
   }
-  clip = null;
   draw(ctx2) {
     if (this.clip === null)
       ctx2.drawImage(this.image, this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
@@ -470,30 +826,40 @@ var ImageButton = class extends Button {
 
 // src/ui/uiElements/uiHover.ts
 var UIHover = class {
-  constructor(sRect, dRect, input, title, description = "") {
+  constructor(sRect, pos, input, title, description = "") {
     this.sRect = sRect;
-    this.dRect = dRect;
     this.input = input;
+    const canvas2 = document.createElement("canvas");
+    const ctx2 = canvas2.getContext("2d");
+    ctx2.font = "20px MonogramFont";
+    const titleWidth = ctx2.measureText(title).width;
     this.title = title;
-    this.description = description;
-    this.dRect.x += this.sRect.x;
-    this.dRect.y += this.sRect.y;
+    this.description = description.split("\n").filter((d) => d !== "");
+    console.log(this.description);
+    this.dRect = new Rect(
+      this.sRect.x + pos.x,
+      this.sRect.y + pos.y,
+      Math.max(titleWidth, ...this.description.map((d) => ctx2.measureText(d).width)),
+      20 * (this.description.length + 1)
+    );
   }
   isOver = false;
+  title;
+  description;
+  dRect;
   draw(ctx2) {
     if (this.isOver) {
       ctx2.fillStyle = "black";
       ctx2.fillRect(this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
+      ctx2.font = "20px MonogramFont";
       ctx2.textAlign = "center";
       ctx2.textBaseline = "top";
       ctx2.fillStyle = "white";
-      ctx2.font = "20px MonogramFont";
       ctx2.fillText(this.title, this.dRect.x + this.dRect.width / 2, this.dRect.y);
-      if (this.description === "") return;
-      ctx2.textAlign = "center";
-      ctx2.textBaseline = "bottom";
       ctx2.font = "16px MonogramFont";
-      ctx2.fillText(this.description, this.dRect.x + this.dRect.width / 2, this.dRect.y + this.dRect.height - 2);
+      ctx2.textAlign = "center";
+      ctx2.textBaseline = "middle";
+      this.description.forEach((d, i) => ctx2.fillText(d, this.dRect.x + this.dRect.width / 2, this.dRect.y + 30 + 14 * i));
     }
   }
   update(dt) {
@@ -513,55 +879,6 @@ var HUDConfig = class {
   static top = { xRatio: 0, yRatio: 0, widthRatio: 1, heightRatio: 0.1 };
 };
 
-// src/util/rect.ts
-var Rect = class _Rect {
-  x;
-  y;
-  width;
-  height;
-  left;
-  right;
-  top;
-  bottom;
-  constructor(x, y, width, height) {
-    this.x = x;
-    this.y = y;
-    this.width = width;
-    this.height = height;
-    this.left = x;
-    this.right = x + width;
-    this.top = y;
-    this.bottom = y + height;
-  }
-  contains(x, y) {
-    return x >= this.x && x < this.x + this.width && y >= this.y && y < this.y + this.height;
-  }
-  collide(rect) {
-    return this.contains(rect.x, rect.y) || this.contains(rect.x + rect.width, rect.y) || this.contains(rect.x, rect.y + rect.height) || this.contains(rect.x + rect.width, rect.y + rect.height);
-  }
-  copy() {
-    return new _Rect(this.x, this.y, this.width, this.height);
-  }
-  translate(x, y) {
-    return new _Rect(this.x + x, this.y + y, this.width, this.height);
-  }
-  resize(width, height) {
-    return new _Rect(this.x, this.y, width, height);
-  }
-  scale(scale) {
-    return new _Rect(this.x, this.y, this.width * scale, this.height * scale);
-  }
-  center() {
-    return new _Rect(this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
-  }
-  getCenterX() {
-    return this.x + this.width / 2;
-  }
-  getCenterY() {
-    return this.y + this.height / 2;
-  }
-};
-
 // src/ui/uiPanels/uiGeneric.ts
 var UIGeneric = class {
   constructor(rect, input, player) {
@@ -571,6 +888,7 @@ var UIGeneric = class {
   }
   isShown = true;
   buttons = /* @__PURE__ */ new Map();
+  hovers = /* @__PURE__ */ new Map();
   setIsShown(isShown) {
     this.isShown = isShown;
   }
@@ -600,8 +918,9 @@ var UIBottom = class extends UIGeneric {
 
 // src/ui/uiPanels/uiInventory.ts
 var UIInventory = class {
-  constructor(input, sRect, dRect, offsetX = 0, offsetY = 0) {
+  constructor(input, player, sRect, dRect, offsetX = 0, offsetY = 0) {
     this.input = input;
+    this.player = player;
     this.sRect = sRect;
     this.dRect = dRect;
     this.offsetX = offsetX;
@@ -609,13 +928,12 @@ var UIInventory = class {
   }
 };
 var OreInventory = class extends UIInventory {
-  constructor(input, player, sRect, dRect, offsetX = 0, offsetY = 0) {
-    super(input, sRect, dRect, offsetX, offsetY);
-    this.player = player;
-    this.setItems();
-    EventBus.on("inventory:update", () => this.setItems());
-  }
   slots = [];
+  constructor(input, player, sRect, dRect, offsetX = 0, offsetY = 0) {
+    super(input, player, sRect, dRect, offsetX, offsetY);
+    EventBus.on("inventory:loaded", () => this.setItems());
+    EventBus.on("inventory:updated", () => this.setItems());
+  }
   draw(ctx2) {
     this.slots.forEach((slot) => {
       ctx2.fillStyle = "white";
@@ -645,13 +963,13 @@ var OreInventory = class extends UIInventory {
     this.slots = [];
     if (items.size > 0) {
       let c = 0;
-      items.forEach((item) => {
+      items.forEach(({ item, amount }) => {
         const slotRect = new Rect(this.sRect.x + this.offsetX, this.sRect.y + this.offsetY + 90 * c, 100, 60);
         this.slots.push({
-          name: item.item.name,
-          amount: item.amount.toString(),
-          sprite: item.item.sprite,
-          spriteClip: item.item.spriteClip,
+          name: item.name,
+          amount: amount.toString(),
+          sprite: item.getSprite(),
+          spriteClip: item.getClip(),
           rect: slotRect,
           holdBtns: /* @__PURE__ */ new Map(
             [
@@ -663,7 +981,7 @@ var OreInventory = class extends UIInventory {
                 slotRect,
                 new Rect(slotRect.width - 30, 0, 30, 20),
                 this.input,
-                () => EventBus.emit("hold_item", item.item, 1)
+                () => EventBus.emit("hold_item", item, 1)
               )],
               ["x5", new LabelButton(
                 "x5",
@@ -673,7 +991,7 @@ var OreInventory = class extends UIInventory {
                 slotRect,
                 new Rect(slotRect.width - 30, 20, 30, 20),
                 this.input,
-                () => EventBus.emit("hold_item", item.item, 5)
+                () => EventBus.emit("hold_item", item, 5)
               )],
               ["x15", new LabelButton(
                 "x15",
@@ -683,7 +1001,7 @@ var OreInventory = class extends UIInventory {
                 slotRect,
                 new Rect(slotRect.width - 30, 40, 30, 20),
                 this.input,
-                () => EventBus.emit("hold_item", item.item, 15)
+                () => EventBus.emit("hold_item", item, 15)
               )]
             ]
           )
@@ -694,23 +1012,27 @@ var OreInventory = class extends UIInventory {
   }
 };
 var PlateInventory = class extends UIInventory {
-  constructor(input, player, sRect, dRect, offsetX = 0, offsetY = 0) {
-    super(input, sRect, dRect, offsetX, offsetY);
-    this.player = player;
-    this.setItems();
-    EventBus.on("inventory:update", () => this.setItems());
-  }
   plates = [];
+  constructor(input, player, sRect, dRect, offsetX = 0, offsetY = 0) {
+    super(input, player, sRect, dRect, offsetX, offsetY);
+    EventBus.on("inventory:loaded", () => this.setItems());
+    EventBus.on("inventory:updated", () => this.setItems());
+  }
   draw(ctx2) {
     this.plates.forEach(({ plate, rect }) => {
-      ctx2.drawImage(plate.sprite, ...plate.spriteClip, rect.x, rect.y, rect.width, rect.height);
+      ctx2.fillStyle = "grey";
+      ctx2.fillRect(rect.x, rect.y, rect.width, rect.height);
+      ctx2.drawImage(plate.getSprite(), ...plate.getClip(), rect.x + 5, rect.y + 5, rect.width - 10, rect.height - 10);
     });
   }
   update(dt) {
     this.plates.forEach(({ plate, rect }) => {
-      if (this.input.clicked && this.input.isMouseOver(rect)) {
-        EventBus.emit("hold_item", plate, 0);
-        this.input.clicked = false;
+      if (this.input.isMouseOver(rect)) {
+        EventBus.emit("set_tooltip", plate.name);
+        if (this.input.clicked) {
+          EventBus.emit("hold_item", plate, 0);
+          this.input.clicked = false;
+        }
       }
     });
   }
@@ -718,7 +1040,90 @@ var PlateInventory = class extends UIInventory {
     this.plates = [];
     let c = 0;
     this.player.getInventory("plates").forEach((plate) => {
-      this.plates.push({ plate: plate.item, rect: new Rect(this.sRect.x + this.offsetX + 50 * (c % 2), this.sRect.y + this.offsetY + 50 * Math.floor(c / 2), 40, 40) });
+      this.plates.push({
+        plate: plate.item,
+        rect: new Rect(this.sRect.x + this.offsetX + 65 * (c % 2), this.sRect.y + this.offsetY + 65 * Math.floor(c / 2), 55, 55)
+      });
+      c++;
+    });
+  }
+};
+var PiecesInventory = class extends UIInventory {
+  pieces = [];
+  constructor(input, player, sRect, dRect, offsetX = 0, offsetY = 0) {
+    super(input, player, sRect, dRect, offsetX, offsetY);
+    EventBus.on("inventory:loaded", () => this.setItems());
+    EventBus.on("inventory:updated", () => this.setItems());
+  }
+  draw(ctx2) {
+    this.pieces.forEach(({ piece, rect, amount }) => {
+      ctx2.fillStyle = "white";
+      ctx2.fillRect(rect.x, rect.y, rect.width, rect.height);
+      ctx2.drawImage(piece.getSprite(), ...piece.getClip(), rect.x, rect.y, rect.width, rect.height);
+      ctx2.font = "16px MonogramFont";
+      ctx2.fillStyle = "black";
+      ctx2.textAlign = "left";
+      ctx2.textBaseline = "bottom";
+      ctx2.fillText(amount.toString(), rect.x, rect.y + rect.height);
+    });
+  }
+  update(dt) {
+    this.pieces.forEach(({ piece, rect }) => {
+      if (this.input.isMouseOver(rect)) {
+        EventBus.emit("set_tooltip", piece.name);
+        if (this.input.clicked) {
+          EventBus.emit("hold_item", piece, 0);
+          this.input.clicked = false;
+        }
+      }
+    });
+  }
+  setItems() {
+    this.pieces = [];
+    let c = 0;
+    this.player.getInventory("pieces").forEach((piece) => {
+      this.pieces.push({
+        piece: piece.item,
+        rect: new Rect(this.sRect.x + this.offsetX + 65 * (c % 2), this.sRect.y + this.offsetY + 65 * Math.floor(c / 2), 55, 55),
+        amount: piece.amount
+      });
+      c++;
+    });
+  }
+};
+var ToolsInventory = class extends UIInventory {
+  tools = [];
+  constructor(input, player, sRect, dRect, offsetX = 0, offsetY = 0) {
+    super(input, player, sRect, dRect, offsetX, offsetY);
+    EventBus.on("inventory:loaded", () => this.setItems());
+    EventBus.on("inventory:updated", () => this.setItems());
+  }
+  draw(ctx2) {
+    this.tools.forEach(({ tool, rect }) => {
+      ctx2.fillStyle = "grey";
+      ctx2.fillRect(rect.x, rect.y, rect.width, rect.height);
+      ctx2.drawImage(tool.getSprite(), ...tool.getClip(), rect.x + 5, rect.y + 5, rect.width - 10, rect.height - 10);
+    });
+  }
+  update(dt) {
+    this.tools.forEach(({ tool, rect }) => {
+      if (this.input.isMouseOver(rect)) {
+        EventBus.emit("set_tooltip", tool.name);
+        if (this.input.clicked) {
+          EventBus.emit("hold_item", tool, 0);
+          this.input.clicked = false;
+        }
+      }
+    });
+  }
+  setItems() {
+    this.tools = [];
+    let c = 0;
+    this.player.getInventory("tools").forEach((tool) => {
+      this.tools.push({
+        tool: tool.item,
+        rect: new Rect(this.sRect.x + this.offsetX + 65 * (c % 2), this.sRect.y + this.offsetY + 65 * Math.floor(c / 2), 55, 55)
+      });
       c++;
     });
   }
@@ -733,7 +1138,9 @@ var UIRight = class extends UIGeneric {
   pages = /* @__PURE__ */ new Map(
     [
       ["ores", new OreInventory(this.input, this.player, this.rect, this.rect, 20, 60)],
-      ["plates", new PlateInventory(this.input, this.player, this.rect, this.rect, 20, 40)]
+      ["plates", new PlateInventory(this.input, this.player, this.rect, this.rect, 20, 40)],
+      ["pieces", new PiecesInventory(this.input, this.player, this.rect, this.rect, 20, 40)],
+      ["tools", new ToolsInventory(this.input, this.player, this.rect, this.rect, 20, 40)]
     ]
   );
   constructor(input, player) {
@@ -748,12 +1155,24 @@ var UIRight = class extends UIGeneric {
     this.reduceBtn = new ColorButton("lime", this.rect, new Rect(-30, 0, 30, 30), this.input, () => this.resize());
     this.buttons.set(
       "ores",
-      new LabelButton("Ores", "black", "white", 16, this.rect, new Rect(10, 10, 30, 15), this.input, () => this.currentPage = "ores")
+      new LabelButton("Ores", "black", "white", 16, this.rect, new Rect(0, 0, 30, 30), this.input, () => this.setPage("ores"))
     );
     this.buttons.set(
       "plates",
-      new LabelButton("Plates", "black", "white", 16, this.rect, new Rect(45, 10, 40, 15), this.input, () => this.currentPage = "plates")
+      new LabelButton("Plates", "black", "white", 16, this.rect, new Rect(30, 0, 50, 30), this.input, () => this.setPage("plates"))
     );
+    this.buttons.set(
+      "pieces",
+      new LabelButton("Pieces", "black", "white", 16, this.rect, new Rect(80, 0, 40, 30), this.input, () => this.setPage("pieces"))
+    );
+    this.buttons.set(
+      "tools",
+      new LabelButton("Tools", "black", "white", 16, this.rect, new Rect(120, 0, 40, 30), this.input, () => this.setPage("tools"))
+    );
+  }
+  setPage(page) {
+    this.currentPage = page;
+    EventBus.emit("inventory:update");
   }
   resize() {
     if (!this.reduceBtn) return;
@@ -767,6 +1186,7 @@ var UIRight = class extends UIGeneric {
       this.rect.x = GameConfig.GAME_WIDTH - this.rect.width;
       this.reduceBtn.dRect.x -= this.rect.width;
       this.isReduced = false;
+      EventBus.emit("inventory:update");
     }
   }
   draw(ctx2) {
@@ -780,6 +1200,7 @@ var UIRight = class extends UIGeneric {
   }
   update(dt) {
     this.reduceBtn.update(dt);
+    if (this.isReduced) return;
     this.pages.get(this.currentPage).update(dt);
     for (const [_, button] of this.buttons) button.update(dt);
   }
@@ -792,8 +1213,8 @@ var UIRight = class extends UIGeneric {
     for (const i of this.player.getInventory(this.currentPage)) {
       const inventorySlot = new Rect(this.rect.x + 40, this.rect.y + 80 + 80 * c + 10 * c, this.rect.width - 80, 60);
       ctx2.drawImage(
-        i[1].item.sprite,
-        ...i[1].item.spriteClip,
+        i[1].item.getSprite(),
+        ...i[1].item.getClip(),
         inventorySlot.x + inventorySlot.width / 2 - 50,
         inventorySlot.y + inventorySlot.height / 2 - 32,
         64,
@@ -851,15 +1272,35 @@ var UITop = class extends UIGeneric {
       HUDConfig.top.heightRatio * GameConfig.GAME_HEIGHT
     );
     super(rect, input, player);
+    EventBus.on("inventory:loaded", () => this.load());
   }
   draw(ctx2) {
     if (!this.isShown) return;
     ctx2.fillStyle = "hsla(0, 0%, 10%, 0.8)";
     ctx2.fillRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
     for (const [_, button] of this.buttons) button.draw(ctx2);
+    for (const [_, hover] of this.hovers) hover.draw(ctx2);
   }
   update(dt) {
-    for (const [_, button] of this.buttons) button.update(dt);
+    for (const [key, button] of this.buttons) {
+      button.update(dt);
+    }
+    ;
+    for (const [_, hover] of this.hovers) hover.update(dt);
+  }
+  load() {
+    this.buttons.set(
+      "player_pickaxe",
+      new ImageButton(this.rect, new Rect(0, 5, 50, 50), this.input, this.player.gear.pickaxe.getSprite(), this.player.gear.pickaxe.getClip())
+    );
+    this.hovers.set("player_pickaxe", new UIHover(
+      this.buttons.get("player_pickaxe").dRect,
+      { x: 50, y: 0 },
+      this.input,
+      this.player.gear.pickaxe.name,
+      `Damage: ${this.player.gear.pickaxe.damage}
+Durability: ${this.player.gear.pickaxe.durability}`
+    ));
   }
 };
 
@@ -909,8 +1350,8 @@ var UIManager = class {
   addHUDImageButton(side, name, image, clip, rect, handleClick = null) {
     this.hud.sections.get(side).buttons.set(name, new ImageButton(this.hud.sections.get(side).rect, rect, this.input, image, clip, handleClick));
   }
-  addButtonHover(button, dRect, title, description = "") {
-    this.hovers.set(title, new UIHover(button.dRect, dRect, this.input, title, description));
+  addButtonHover(button, dPos, title, description = "") {
+    this.hovers.set(title, new UIHover(button.dRect, dPos, this.input, title, description));
   }
   getHUDButton(side, name) {
     return this.hud.sections.get(side).buttons.get(name);
@@ -919,12 +1360,12 @@ var UIManager = class {
     if (!this.isHUDActive) return;
     this.hud.draw(ctx2);
     this.hovers.forEach((hover) => hover.draw(ctx2));
-    this.drawToolTip(ctx2);
     this.drawHoldingItem(ctx2);
+    this.drawToolTip(ctx2);
   }
   drawHoldingItem(ctx2) {
     if (this.player.holdingItem) {
-      ctx2.drawImage(this.player.holdingItem.item.sprite, ...this.player.holdingItem.item.spriteClip, this.input.x - 32, this.input.y - 32, 64, 64);
+      ctx2.drawImage(this.player.holdingItem.item.getSprite(), ...this.player.holdingItem.item.getClip(), this.input.x - 32, this.input.y - 32, 64, 64);
       ctx2.fillStyle = "white";
       ctx2.font = "24px MonogramFont";
       if (this.player.holdingItem.amount === 0) return;
@@ -936,11 +1377,16 @@ var UIManager = class {
     ctx2.font = "16px MonogramFont";
     const wordData = ctx2.measureText(this.activeToolTip);
     ctx2.fillStyle = "black";
-    ctx2.fillRect(this.input.x - wordData.width / 2 - 6, this.input.y - 20, wordData.width + 10, 20);
+    let x = this.input.x - wordData.width / 2 - 5;
+    let y = this.input.y - 20;
+    if (x < 0) x = 0;
+    else if (x + wordData.width + 10 > ctx2.canvas.width) x = ctx2.canvas.width - wordData.width - 10;
+    if (y < 0) y = 0;
+    ctx2.fillRect(x, y, wordData.width + 10, 20);
     ctx2.fillStyle = "white";
     ctx2.textAlign = "center";
     ctx2.textBaseline = "middle";
-    ctx2.fillText(this.activeToolTip, this.input.x, this.input.y - 10);
+    ctx2.fillText(this.activeToolTip, x + wordData.width / 2 + 5, y + 10);
     this.activeToolTip = "";
   }
   update(dt) {
@@ -1053,7 +1499,7 @@ var CaveScene = class extends GenericScene {
   }
   oreRespawnTime = 20;
   ores = [];
-  canSpawn = [{ type: CoalOreBoulder, chance: 0.5 }, { type: CopperOreBoulder, chance: 0.4 }, { type: GoldOreBoulder, chance: 0.1 }];
+  canSpawn = [{ type: CoalOreBoulder, chance: 0.49 }, { type: CopperOreBoulder, chance: 0.46 }, { type: GoldOreBoulder, chance: 0.05 }];
   spots = [
     { x: 80, y: 340, ore: null, spawnTime: 20 },
     { x: 550, y: 320, ore: null, spawnTime: 20 },
@@ -1076,6 +1522,10 @@ var CaveScene = class extends GenericScene {
     }
   }
   update(dt) {
+    if (this.player.holdingItem && this.input.clicked) {
+      this.player.holdingItem = null;
+      this.input.clicked = false;
+    }
     for (const ore of this.ores) {
       if (this.input.isMouseOver(ore.rect)) {
         EventBus.emit("set_tooltip", ore.name);
@@ -1090,11 +1540,8 @@ var CaveScene = class extends GenericScene {
     }
     for (const spot of this.spots) {
       if (spot.ore) continue;
-      if (spot.spawnTime < this.oreRespawnTime) {
-        spot.spawnTime += dt;
-        continue;
-      }
-      this.generateOre(spot);
+      spot.spawnTime += dt;
+      if (spot.spawnTime >= this.oreRespawnTime) this.generateOre(spot);
     }
   }
   handleOreCollected = (oreBoulder, ore) => {
@@ -1260,6 +1707,21 @@ var Furnace = class extends GenericObject {
   }
 };
 
+// src/entities/Anvil.ts
+var Anvil = class {
+  constructor(rect) {
+    this.rect = rect;
+    const assetManager = AssetManager.getInstance();
+    this.sprite = assetManager.getObjectImage("anvil");
+  }
+  sprite;
+  draw(ctx2) {
+    ctx2.drawImage(this.sprite.img, ...this.sprite.clip, this.rect.x, this.rect.y, this.rect.width, this.rect.height);
+  }
+  update(dt) {
+  }
+};
+
 // src/scenes/ForgeScene.ts
 var ForgeScene = class extends GenericScene {
   constructor(input, player) {
@@ -1269,10 +1731,18 @@ var ForgeScene = class extends GenericScene {
     this.input = input;
     this.player = player;
     this.furnaces.push(new Furnace(new Rect(220, 200, 120, 120 * 1.6)));
+    this.anvils.push(new Anvil(new Rect(400, 332, 100, 60)));
   }
   furnaces = [];
+  anvils = [];
   draw(ctx2) {
     super.draw(ctx2);
+    this.drawFurnaceUI(ctx2);
+    for (const anvil of this.anvils) {
+      anvil.draw(ctx2);
+    }
+  }
+  drawFurnaceUI(ctx2) {
     for (const furnace of this.furnaces) {
       furnace.draw(ctx2);
       const furnaceUi = new Rect(furnace.rect.x, furnace.rect.y - 50, furnace.rect.width, 50);
@@ -1290,11 +1760,11 @@ var ForgeScene = class extends GenericScene {
       ctx2.strokeRect(furnaceUi.x + 5, furnaceUi.y + 5, 40, 40);
       ctx2.strokeRect(furnaceUi.x + furnaceUi.width - 45, furnaceUi.y + 5, 40, 40);
       if (furnace.getFuel()) {
-        ctx2.drawImage(furnace.getFuel().item.sprite, ...furnace.getFuel().item.spriteClip, furnaceUi.x + 5, furnaceUi.y + 5, 40, 40);
+        ctx2.drawImage(furnace.getFuel().item.getSprite(), ...furnace.getFuel().item.getClip(), furnaceUi.x + 5, furnaceUi.y + 5, 40, 40);
         ctx2.fillText(furnace.getFuel().amount.toString(), furnaceUi.x + 40, furnaceUi.y + 45);
       }
       if (furnace.getOutput()) {
-        ctx2.drawImage(furnace.getOutput().item.sprite, ...furnace.getOutput().item.spriteClip, furnaceUi.x + furnaceUi.width - 45, furnaceUi.y + 5, 40, 40);
+        ctx2.drawImage(furnace.getOutput().item.getSprite(), ...furnace.getOutput().item.getClip(), furnaceUi.x + furnaceUi.width - 45, furnaceUi.y + 5, 40, 40);
         ctx2.fillText(furnace.getOutput().amount.toString(), furnaceUi.x + furnaceUi.width - 10, furnaceUi.y + 45);
       }
     }
@@ -1306,6 +1776,13 @@ var ForgeScene = class extends GenericScene {
         EventBus.emit("set_tooltip", "Furnace");
       }
     }
+    this.handleFurnaceInteraction();
+    for (const anvil of this.anvils) {
+      anvil.update(dt);
+    }
+    this.handleAnvilInteraction();
+  }
+  handleFurnaceInteraction() {
     for (const furnace of this.furnaces) {
       if (this.input.clicked) {
         if (furnace.rect.collide(this.input.getRect())) {
@@ -1317,11 +1794,22 @@ var ForgeScene = class extends GenericScene {
               this.player.removeItem(item, amount);
             }
           } else {
-            EventBus.emit("open_furnace", furnace);
+            EventBus.emit("scene:set", "furnace", furnace);
           }
           this.input.clicked = false;
         }
         this.player.holdingItem = null;
+      }
+    }
+  }
+  handleAnvilInteraction() {
+    for (const anvil of this.anvils) {
+      if (this.input.isMouseOver(anvil.rect)) {
+        EventBus.emit("set_tooltip", "Anvil");
+        if (this.input.clicked) {
+          EventBus.emit("scene:set", "anvil");
+          this.input.clicked = false;
+        }
       }
     }
   }
@@ -1373,8 +1861,8 @@ var SmeltScene = class extends GenericScene {
 
 // src/scenes/FurnaceScene.ts
 var colors = {
-  "copper": "hsl(20, 50%, 50%)",
-  "gold": "hsl(50, 80%, 50%)"
+  "Copper Ore": "hsl(20, 50%, 50%)",
+  "Gold Ore": "hsl(50, 80%, 50%)"
 };
 var FurnaceScene = class extends GenericScene {
   constructor(input, player, furnace) {
@@ -1385,54 +1873,149 @@ var FurnaceScene = class extends GenericScene {
     this.platePos = new Rect(this.rect.width / 2 - 100, 150, 200, 200);
     this.meltedBackground = {
       rect: new Rect(this.platePos.x + this.platePos.width / 2 - 73, this.platePos.y + this.platePos.height / 2 - 73, 146, 146),
-      color: "gold"
+      color: null
       //furnace.getOutput()?.item.outputType ? colors[furnace.getOutput()!.item.outputType as keyof typeof colors] : null
     };
     this.furnaceTank = {
-      rect: new Rect(30, this.platePos.y + this.platePos.height / 2 - 120 - 50, 180, 260),
+      rect: new Rect(60, this.platePos.y + this.platePos.height / 2 - 120 - 50, 140, 260),
       ores: []
     };
+    this.smeltBtn = new LabelButton(
+      "DROP",
+      "black",
+      "cyan",
+      16,
+      this.furnaceTank.rect,
+      new Rect(this.furnaceTank.rect.width / 2 - 25, this.furnaceTank.rect.height + 60, 50, 30),
+      this.input,
+      this.meltToPlate.bind(this)
+    );
   }
   activePlate = null;
   platePos;
   meltedBackground;
   furnaceTank;
+  smeltProcess = null;
+  smeltBtn;
   draw(ctx2) {
     super.draw(ctx2);
+    this.drawFurnaceTank(ctx2);
+    this.smeltBtn.draw(ctx2);
+    this.drawPlate(ctx2);
+  }
+  update(dt) {
+    if (this.player.holdingItem && this.input.clicked) {
+      if (this.player.holdingItem?.item instanceof Plate && this.input.isMouseOver(this.platePos)) {
+        this.activePlate = this.player.holdingItem.item;
+        this.smeltProcess = null;
+      }
+      this.player.holdingItem = null;
+    }
+    this.smeltBtn.update(dt);
+  }
+  meltToPlate() {
+    if (this.furnace.content.length === 0 || !this.activePlate) return;
+    const { ore } = this.furnace.content[0];
+    if (this.smeltProcess) {
+      if (this.smeltProcess.ore.name === ore.name && this.smeltProcess.amount < this.activePlate.oreNeededAmount) {
+        this.smeltProcess.amount += 1;
+        this.furnace.content[0].amount -= 1;
+        if (this.furnace.content[0].amount === 0) this.furnace.content.shift();
+      }
+    } else {
+      this.smeltProcess = { ore, amount: 1 };
+      this.furnace.content[0].amount -= 1;
+      this.meltedBackground.color = colors[ore.name];
+    }
+    if (this.smeltProcess.amount === this.activePlate.oreNeededAmount) {
+      this.player.addItem(this.activePlate.getPiece(ore), 1);
+      this.activePlate = null;
+      this.smeltProcess = null;
+    }
+  }
+  drawPlate(ctx2) {
     ctx2.fillStyle = "gray";
     ctx2.fillRect(this.platePos.x, this.platePos.y, this.platePos.width, this.platePos.height);
+    if (this.activePlate) {
+      ctx2.fillStyle = this.meltedBackground.color ?? "white";
+      ctx2.fillRect(
+        this.platePos.x + this.platePos.width / 2 - 73,
+        this.platePos.y + this.platePos.height / 2 - 73,
+        146,
+        146 * (this.smeltProcess?.amount ?? 0) / this.activePlate.oreNeededAmount
+      );
+      ctx2.drawImage(
+        this.activePlate.getSprite(),
+        ...this.activePlate.getClip(),
+        this.platePos.x + this.platePos.width / 2 - 90,
+        this.platePos.y + this.platePos.height / 2 - 90,
+        180,
+        180
+      );
+      ctx2.fillStyle = "black";
+      ctx2.textAlign = "center";
+      ctx2.textBaseline = "top";
+      ctx2.font = "20px MonogramFont";
+      ctx2.fillText(
+        this.activePlate.name,
+        this.platePos.x + this.platePos.width / 2,
+        this.platePos.y + this.platePos.height
+      );
+      const filledAmount = this.smeltProcess?.amount ?? 0;
+      ctx2.fillText(
+        `${filledAmount}/${this.activePlate.oreNeededAmount}`,
+        this.platePos.x + this.platePos.width / 2,
+        this.platePos.y + this.platePos.height + 15
+      );
+    } else {
+      ctx2.fillStyle = "black";
+      ctx2.textAlign = "center";
+      ctx2.textBaseline = "top";
+      ctx2.font = "20px MonogramFont";
+      ctx2.fillText("No Plate", this.platePos.x + this.platePos.width / 2, this.platePos.y + this.platePos.height);
+    }
+  }
+  drawFurnaceTank(ctx2) {
     ctx2.fillStyle = "gray";
     ctx2.fillRect(this.furnaceTank.rect.x, this.furnaceTank.rect.y, this.furnaceTank.rect.width, this.furnaceTank.rect.height);
     let outputYPos = this.furnaceTank.rect.y + this.furnaceTank.rect.height;
     for (const { ore, amount } of this.furnace.content) {
       outputYPos -= 260 * amount / this.furnace.maxSpaceAmount;
-      ctx2.fillStyle = colors[ore.outputType];
+      ctx2.fillStyle = colors[ore.name] ?? "white";
       ctx2.fillRect(this.furnaceTank.rect.x, outputYPos, this.furnaceTank.rect.width, 260 * amount / this.furnace.maxSpaceAmount);
     }
     ctx2.fillStyle = "black";
     ctx2.font = "20px MonogramFont";
     ctx2.textAlign = "center";
     ctx2.textBaseline = "top";
-    ctx2.fillText(`${this.furnace.content.reduce((a, b) => a + b.amount, 0)}/${this.furnace.maxSpaceAmount}`, this.furnaceTank.rect.x + this.furnaceTank.rect.width / 2, this.furnaceTank.rect.y + this.furnaceTank.rect.height);
-    if (this.activePlate) {
-      ctx2.fillStyle = colors[this.meltedBackground.color] ?? "white";
-      ctx2.fillRect(this.platePos.x + this.platePos.width / 2 - 73, this.platePos.y + this.platePos.height / 2 - 73, 146, 146);
-      ctx2.drawImage(
-        this.activePlate.sprite,
-        ...this.activePlate.spriteClip,
-        this.platePos.x + this.platePos.width / 2 - 90,
-        this.platePos.y + this.platePos.height / 2 - 90,
-        180,
-        180
-      );
-    }
+    ctx2.fillText(
+      "Melted Ores",
+      this.furnaceTank.rect.x + this.furnaceTank.rect.width / 2,
+      this.furnaceTank.rect.y + this.furnaceTank.rect.height
+    );
+    ctx2.fillText(
+      `${this.furnace.content.reduce((a, b) => a + b.amount, 0)}/${this.furnace.maxSpaceAmount}`,
+      this.furnaceTank.rect.x + this.furnaceTank.rect.width / 2,
+      this.furnaceTank.rect.y + this.furnaceTank.rect.height + 15
+    );
+  }
+  enter() {
+  }
+  exit() {
+  }
+};
+
+// src/scenes/AnvilScene.ts
+var AnvilScene = class extends GenericScene {
+  constructor(input, player) {
+    const sprite = AssetManager.getInstance().getBackgroundImage("anvilBackground");
+    super(input, player, sprite);
   }
   update(dt) {
-    if (this.player.holdingItem && this.input.clicked) {
-      if (this.player.holdingItem?.item instanceof Plate && this.input.isMouseOver(this.platePos)) {
-        this.activePlate = this.player.holdingItem.item;
+    if (this.player.holdingItem) {
+      if (this.input.clicked) {
+        this.player.holdingItem = null;
       }
-      this.player.holdingItem = null;
     }
   }
   enter() {
@@ -1446,7 +2029,9 @@ var SceneManager = class {
   constructor(input, player) {
     this.input = input;
     this.player = player;
-    EventBus.on("open_furnace", (furnace) => this.setScene("furnace", furnace));
+    EventBus.on("scene:set", (scene, ...args) => {
+      this.setScene(scene, ...args);
+    });
   }
   loadedScenes = /* @__PURE__ */ new Map();
   sceneClasses = {
@@ -1454,7 +2039,8 @@ var SceneManager = class {
     forge: ForgeScene,
     quests: QuestsScene,
     smelt: SmeltScene,
-    furnace: FurnaceScene
+    furnace: FurnaceScene,
+    anvil: AnvilScene
   };
   currentScene = "cave";
   draw(ctx2) {
@@ -1501,13 +2087,6 @@ var Game = class {
     const assetManager = AssetManager.getInstance();
     await assetManager.loadAll();
     this.player.init();
-    this.uiManager.addHUDImageButton("top", "player_pickaxe", this.player.gear.pickaxe.sprite, this.player.gear.pickaxe.spriteClip, new Rect(10, 10, 30, 30));
-    this.uiManager.addButtonHover(
-      this.uiManager.getHUDButton("top", "player_pickaxe"),
-      new Rect(30, 0, 120, 35),
-      `${this.player.gear.pickaxe.name}`,
-      `Damage: ${this.player.gear.pickaxe.damage}`
-    );
     this.sceneManager.setScene("forge");
   }
   update(dt) {
