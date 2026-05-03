@@ -2,6 +2,7 @@ import type { InputManager } from "../../core/InputManager.js";
 import Rect from "../../util/rect.js";
 
 export default class UIHover {
+    static hasHover: UIHover | null = null;
     public isOver: boolean = false;
     public title: string;
     public description: string[];
@@ -16,8 +17,6 @@ export default class UIHover {
 
         this.title = title;
         this.description = description.split("\n").filter((d) => d !== "");
-
-        console.log(this.description);
 
         this.dRect = new Rect(
             this.sRect.x + pos.x,
@@ -43,6 +42,10 @@ export default class UIHover {
             ctx.textBaseline = "middle";            
             this.description.forEach((d, i) => ctx.fillText(d, this.dRect.x + this.dRect.width / 2, this.dRect.y + 30 + (14 * i)));
         }
+    }
+
+    static setHover(hover: UIHover) {
+        this.hasHover = hover;
     }
 
     update(dt: number) {

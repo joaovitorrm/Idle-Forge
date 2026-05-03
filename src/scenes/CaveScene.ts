@@ -7,6 +7,7 @@ import Rect from "../util/rect.js";
 import type Player from "../entities/Player.js";
 import { EventBus } from "../core/EventBus.js";
 import type { Fuel, Melt, Ore } from "../entities/Item.js";
+import type { UIManager } from "../ui/uiManager.js";
 
 interface Spot {
     x: number;
@@ -29,12 +30,10 @@ export default class CaveScene extends GenericScene {
         { x: 460, y: 260, ore: null, spawnTime: 20 },
     ];
 
-    constructor(protected input: InputManager, protected player: Player) {
+    constructor(protected input: InputManager, protected player: Player, protected ui: UIManager) {
+        const sprite = AssetManager.getInstance().getBackgroundImage("caveBackground")!;       
 
-        const assetManager = AssetManager.getInstance();
-        const sprite = assetManager.getBackgroundImage("caveBackground");
-
-        super(input, player, sprite!);
+        super(input, player, ui, sprite);
     }
 
     public draw(ctx: CanvasRenderingContext2D): void {
@@ -58,14 +57,9 @@ export default class CaveScene extends GenericScene {
 
     public update(dt: number): void {
 
-        if (this.player.holdingItem && this.input.clicked) {
-            this.player.holdingItem = null;
-            this.input.clicked = false;
-        }
-
         for (const ore of this.ores) {
             if (this.input.isMouseOver(ore.rect)) {
-                EventBus.emit("set_tooltip", ore.name);
+                this.ui.setToolTip(ore.name);
                 if (this.input.clicked) {
                     ore.health -= this.player.getPickaxeDamage();
                     if (ore.health <= 0) {

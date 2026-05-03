@@ -1,25 +1,24 @@
 const oreTypes = {
     "copper": {
         head: {
-            name: "Copper",
             damageCut: 6,
-            damageImpact: 5,
+            damageImpact: 2,
             durability: 120,
             weight: 1.5,
             special: "Maleável, fácil de moldar, não muito resistente"
         },
         handle: {
             name: "Copper",
-            damageCutMultiplier: 1.0,
-            damageImpactMultiplier: 1.0,
+            damageCutMultiplier: 1.1,
+            damageImpactMultiplier: 1.1,
             durabilityMultiplier: 1.0,
             weight: 1,
             special: "Conduz eletricidade, não muito leve"
         },
         union: {
             name: "Copper",
-            damageCutMultiplier: 1.0,
-            damageImpactMultiplier: 1.0,
+            damageCutMultiplier: 1.1,
+            damageImpactMultiplier: 1.1,
             durabilityMultiplier: 0.9,
             weight: 0.5,
             special: "Solda bem com outros metais"
@@ -27,7 +26,6 @@ const oreTypes = {
     },
     "iron": {
         head: {
-            name: "Iron",
             damageCut: 8,
             damageImpact: 10,
             durability: 250,

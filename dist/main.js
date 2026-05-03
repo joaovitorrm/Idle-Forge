@@ -54,7 +54,7 @@ var tools_default = "./assets/tools-3GRJJX3W.png";
 var plates_default = "./assets/plates-6DFZ4TGJ.png";
 
 // src/assets/images/items/pieces.png
-var pieces_default = "./assets/pieces-3BWNPHF5.png";
+var pieces_default = "./assets/pieces-B3M2NUXU.png";
 
 // src/assets/images/items/anvil.png
 var anvil_default2 = "./assets/anvil-ITOEGWA3.png";
@@ -94,10 +94,14 @@ var plates = {
 };
 var pieces = {
   copperPickaxeHead: { path: pieces_default, clip: [0, 0, 32, 32] },
-  copperHandle: { path: pieces_default, clip: [0, 32, 32, 32] },
-  copperUnion: { path: pieces_default, clip: [0, 32 * 2, 32, 32] },
   goldPickaxeHead: { path: pieces_default, clip: [32, 0, 32, 32] },
+  copperSwordHead: { path: pieces_default, clip: [0, 32 * 3, 32, 32] },
+  goldSwordHead: { path: pieces_default, clip: [32, 32 * 3, 32, 32] },
+  copperSwordHandle: { path: pieces_default, clip: [0, 32 * 4, 32, 32] },
+  goldSwordHandle: { path: pieces_default, clip: [32, 32 * 4, 32, 32] },
+  copperHandle: { path: pieces_default, clip: [0, 32, 32, 32] },
   goldHandle: { path: pieces_default, clip: [32, 32, 32, 32] },
+  copperUnion: { path: pieces_default, clip: [0, 32 * 2, 32, 32] },
   goldUnion: { path: pieces_default, clip: [32, 32 * 2, 32, 32] }
 };
 var objectsAssets = {
@@ -219,25 +223,24 @@ var Rect = class _Rect {
 var oreTypes = {
   "copper": {
     head: {
-      name: "Copper",
       damageCut: 6,
-      damageImpact: 5,
+      damageImpact: 2,
       durability: 120,
       weight: 1.5,
       special: "Male\xE1vel, f\xE1cil de moldar, n\xE3o muito resistente"
     },
     handle: {
       name: "Copper",
-      damageCutMultiplier: 1,
-      damageImpactMultiplier: 1,
+      damageCutMultiplier: 1.1,
+      damageImpactMultiplier: 1.1,
       durabilityMultiplier: 1,
       weight: 1,
       special: "Conduz eletricidade, n\xE3o muito leve"
     },
     union: {
       name: "Copper",
-      damageCutMultiplier: 1,
-      damageImpactMultiplier: 1,
+      damageCutMultiplier: 1.1,
+      damageImpactMultiplier: 1.1,
       durabilityMultiplier: 0.9,
       weight: 0.5,
       special: "Solda bem com outros metais"
@@ -245,7 +248,6 @@ var oreTypes = {
   },
   "iron": {
     head: {
-      name: "Iron",
       damageCut: 8,
       damageImpact: 10,
       durability: 250,
@@ -515,8 +517,12 @@ var Pickaxe = class _Pickaxe extends Tool {
     this.head = head;
     this.handle = handle;
     this.union = union;
-    this.damage = oreData_default[head.oreType].head.damageImpact * oreData_default[handle.oreType].handle.damageImpactMultiplier * oreData_default[union.oreType].union.damageCutMultiplier;
-    this.durability = oreData_default[head.oreType].head.durability * oreData_default[handle.oreType].handle.durabilityMultiplier * oreData_default[union.oreType].union.durabilityMultiplier;
+    this.damage = Math.floor(
+      oreData_default[head.oreType].head.damageImpact * oreData_default[handle.oreType].handle.damageImpactMultiplier * oreData_default[union.oreType].union.damageCutMultiplier
+    );
+    this.durability = Math.floor(
+      oreData_default[head.oreType].head.durability * oreData_default[handle.oreType].handle.durabilityMultiplier * oreData_default[union.oreType].union.durabilityMultiplier
+    );
   }
   damage;
   durability;
@@ -540,6 +546,41 @@ var Pickaxe = class _Pickaxe extends Tool {
     );
   }
 };
+var Sword = class _Sword extends Tool {
+  constructor(name, spriteKey, combinedSprite, head, handle, union) {
+    super(name, spriteKey, combinedSprite);
+    this.head = head;
+    this.handle = handle;
+    this.union = union;
+    this.damage = Math.floor(
+      oreData_default[head.oreType].head.damageCut * oreData_default[handle.oreType].handle.damageCutMultiplier * oreData_default[union.oreType].union.damageCutMultiplier
+    );
+    this.durability = Math.floor(
+      oreData_default[head.oreType].head.durability * oreData_default[handle.oreType].handle.durabilityMultiplier * oreData_default[union.oreType].union.durabilityMultiplier
+    );
+  }
+  damage;
+  durability;
+  static async create(name, head, handle, union) {
+    const combined = await AssetManager.getInstance().getCombinedImage(
+      [
+        { spriteKey: handle.spriteKey, pos: new Rect(0, 0, 32, 32) },
+        { spriteKey: head.spriteKey, pos: new Rect(6, -5, 32, 32) },
+        { spriteKey: union.spriteKey, pos: new Rect(-1, 1, 32, 32) }
+      ],
+      32,
+      32
+    );
+    return new _Sword(
+      name ?? `${head.oreType.charAt(0).toUpperCase() + head.oreType.slice(1)} Sword`,
+      head.spriteKey,
+      combined,
+      head,
+      handle,
+      union
+    );
+  }
+};
 var StarterPickaxe = class extends Pickaxe {
   constructor(name, key, sprite, head, handle, union) {
     super(name, key, sprite, head, handle, union);
@@ -550,8 +591,16 @@ var StarterPickaxe = class extends Pickaxe {
     const union = new Piece("copper", "Union");
     return await Pickaxe.create(null, head, handle, union);
   }
-  getDamage() {
-    return 1;
+};
+var StarterSword = class extends Sword {
+  constructor(name, key, sprite, head, handle, union) {
+    super(name, key, sprite, head, handle, union);
+  }
+  static async create() {
+    const head = new Piece("gold", "Sword Head");
+    const handle = new Piece("copper", "Handle");
+    const union = new Piece("copper", "Sword Handle");
+    return await Sword.create(null, head, handle, union);
   }
 };
 var pickaxeHeadPlate = class extends Plate {
@@ -635,7 +684,7 @@ var Inventory = class {
     const existing = this.inventory.get(item.name);
     const newAmount = (existing?.amount ?? 0) + amount;
     this.inventory.set(item.name, { item, amount: newAmount });
-    EventBus.emit("inventory:update");
+    EventBus.emit("inventory:updated");
     this.save();
   }
   getItems() {
@@ -647,7 +696,7 @@ var Inventory = class {
     const newAmount = existing.amount - amount;
     if (newAmount > 0) this.inventory.set(item.name, { item, amount: newAmount });
     else this.inventory.delete(item.name);
-    EventBus.emit("inventory:update");
+    EventBus.emit("inventory:updated");
     this.save();
   }
   getItemAmount(item) {
@@ -688,17 +737,19 @@ var Player = class {
     tools: new Inventory([Tool], "tools")
   };
   gear = {
-    "pickaxe": null
+    "pickaxe": null,
+    "sword": null
   };
-  holdingItem = null;
-  //public unlockedPlates : Map<string, Plate> = new Map();
   async init() {
     if (localStorage.getItem("playerData")) {
       const playerData = JSON.parse(localStorage.getItem("playerData"));
       this.money = playerData.money;
       this.gear = playerData.gear;
     } else {
-      this.gear = { "pickaxe": await StarterPickaxe.create() };
+      this.gear = {
+        "pickaxe": await StarterPickaxe.create(),
+        "sword": await StarterSword.create()
+      };
       this.inventories.plates.addItem(new pickaxeHeadPlate(), 1);
       this.inventories.plates.addItem(new handlePlate(), 1);
       this.inventories.plates.addItem(new unionPlate(), 1);
@@ -706,17 +757,6 @@ var Player = class {
       this.inventories.plates.addItem(new swordHandlerPlate(), 1);
     }
     Object.values(this.inventories).forEach((inventory) => inventory.init());
-    this.initEvents();
-  }
-  initEvents() {
-    EventBus.on("hold_item", (item, amount) => {
-      if (this.getItemAmount(item) < (this.holdingItem ? this.holdingItem.amount : 0) + amount) return;
-      if (this.holdingItem !== null && this.holdingItem.item.name === item.name) {
-        this.holdingItem.amount += amount;
-        return;
-      }
-      this.holdingItem = { item, amount };
-    });
     EventBus.emit("inventory:loaded");
   }
   addItem(item, amount) {
@@ -749,6 +789,115 @@ var Player = class {
   getPickaxeDamage() {
     return this.gear.pickaxe ? this.gear.pickaxe.damage : 0;
   }
+};
+
+// src/ui/uiElements/Book/Page.ts
+var Page = class {
+  constructor(title, content) {
+    this.title = title;
+    this.content = content;
+  }
+};
+
+// src/ui/uiElements/Book/UIBook.ts
+var UIBook = class {
+  constructor(input, bookColor) {
+    this.input = input;
+    this.bookColor = bookColor;
+    this.dRect = new Rect(GameConfig.GAME_WIDTH / 2 - this.width / 2, GameConfig.GAME_HEIGHT / 2 - this.height / 2, this.width, this.height);
+  }
+  pages = [];
+  actualPage = 0;
+  dRect;
+  width = 450;
+  height = 320;
+  margin = 10;
+  middleLineWidth = 4;
+  draw(ctx2) {
+    ctx2.fillStyle = this.bookColor;
+    ctx2.fillRect(this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
+    if (this.pages[this.actualPage]) {
+      ctx2.fillStyle = "white";
+      ctx2.fillRect(this.dRect.x + this.margin - this.middleLineWidth / 2, this.dRect.y + this.margin, this.dRect.width / 2 - this.margin, this.dRect.height - this.margin * 2);
+    }
+    if (this.pages[this.actualPage + 1]) {
+      ctx2.fillStyle = "white";
+      ctx2.fillRect(this.dRect.x + this.dRect.width / 2 + this.middleLineWidth / 2, this.dRect.y + this.margin, this.dRect.width / 2 - this.margin, this.dRect.height - this.margin * 2);
+    }
+  }
+  update(dt) {
+  }
+};
+var ToolsBook = class extends UIBook {
+  constructor(input, bookColor) {
+    super(input, bookColor);
+    this.pages.push(new Page("test", "test"));
+    this.pages.push(new Page("test", "test"));
+  }
+  draw(ctx2) {
+    super.draw(ctx2);
+  }
+  update(dt) {
+    super.update(dt);
+  }
+};
+
+// src/ui/uiElements/uiHover.ts
+var UIHover = class {
+  constructor(sRect, pos, input, title, description = "") {
+    this.sRect = sRect;
+    this.input = input;
+    const canvas2 = document.createElement("canvas");
+    const ctx2 = canvas2.getContext("2d");
+    ctx2.font = "20px MonogramFont";
+    const titleWidth = ctx2.measureText(title).width;
+    this.title = title;
+    this.description = description.split("\n").filter((d) => d !== "");
+    this.dRect = new Rect(
+      this.sRect.x + pos.x,
+      this.sRect.y + pos.y,
+      Math.max(titleWidth, ...this.description.map((d) => ctx2.measureText(d).width)),
+      20 * (this.description.length + 1)
+    );
+  }
+  static hasHover = null;
+  isOver = false;
+  title;
+  description;
+  dRect;
+  draw(ctx2) {
+    if (this.isOver) {
+      ctx2.fillStyle = "black";
+      ctx2.fillRect(this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
+      ctx2.font = "20px MonogramFont";
+      ctx2.textAlign = "center";
+      ctx2.textBaseline = "top";
+      ctx2.fillStyle = "white";
+      ctx2.fillText(this.title, this.dRect.x + this.dRect.width / 2, this.dRect.y);
+      ctx2.font = "16px MonogramFont";
+      ctx2.textAlign = "center";
+      ctx2.textBaseline = "middle";
+      this.description.forEach((d, i) => ctx2.fillText(d, this.dRect.x + this.dRect.width / 2, this.dRect.y + 30 + 14 * i));
+    }
+  }
+  static setHover(hover) {
+    this.hasHover = hover;
+  }
+  update(dt) {
+    if (this.input.isMouseOver(this.sRect) || this.input.isMouseOver(this.dRect) && this.isOver) {
+      this.isOver = true;
+    } else {
+      this.isOver = false;
+    }
+  }
+};
+
+// src/config/hudConfig.ts
+var HUDConfig = class {
+  static right = { xRatio: 0.8, yRatio: 0.1, widthRatio: 0.2, heightRatio: 0.8 };
+  static left = { xRatio: 0, yRatio: 0.1, widthRatio: 0.2, heightRatio: 0.8 };
+  static bottom = { xRatio: 0, yRatio: 0.9, widthRatio: 1, heightRatio: 0.1 };
+  static top = { xRatio: 0, yRatio: 0, widthRatio: 1, heightRatio: 0.1 };
 };
 
 // src/ui/uiElements/uiButton.ts
@@ -824,67 +973,13 @@ var ImageButton = class extends Button {
   }
 };
 
-// src/ui/uiElements/uiHover.ts
-var UIHover = class {
-  constructor(sRect, pos, input, title, description = "") {
-    this.sRect = sRect;
-    this.input = input;
-    const canvas2 = document.createElement("canvas");
-    const ctx2 = canvas2.getContext("2d");
-    ctx2.font = "20px MonogramFont";
-    const titleWidth = ctx2.measureText(title).width;
-    this.title = title;
-    this.description = description.split("\n").filter((d) => d !== "");
-    console.log(this.description);
-    this.dRect = new Rect(
-      this.sRect.x + pos.x,
-      this.sRect.y + pos.y,
-      Math.max(titleWidth, ...this.description.map((d) => ctx2.measureText(d).width)),
-      20 * (this.description.length + 1)
-    );
-  }
-  isOver = false;
-  title;
-  description;
-  dRect;
-  draw(ctx2) {
-    if (this.isOver) {
-      ctx2.fillStyle = "black";
-      ctx2.fillRect(this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
-      ctx2.font = "20px MonogramFont";
-      ctx2.textAlign = "center";
-      ctx2.textBaseline = "top";
-      ctx2.fillStyle = "white";
-      ctx2.fillText(this.title, this.dRect.x + this.dRect.width / 2, this.dRect.y);
-      ctx2.font = "16px MonogramFont";
-      ctx2.textAlign = "center";
-      ctx2.textBaseline = "middle";
-      this.description.forEach((d, i) => ctx2.fillText(d, this.dRect.x + this.dRect.width / 2, this.dRect.y + 30 + 14 * i));
-    }
-  }
-  update(dt) {
-    if (this.input.isMouseOver(this.sRect) || this.input.isMouseOver(this.dRect) && this.isOver) {
-      this.isOver = true;
-    } else {
-      this.isOver = false;
-    }
-  }
-};
-
-// src/config/hudConfig.ts
-var HUDConfig = class {
-  static right = { xRatio: 0.8, yRatio: 0.1, widthRatio: 0.2, heightRatio: 0.8 };
-  static left = { xRatio: 0, yRatio: 0.1, widthRatio: 0.2, heightRatio: 0.8 };
-  static bottom = { xRatio: 0, yRatio: 0.9, widthRatio: 1, heightRatio: 0.1 };
-  static top = { xRatio: 0, yRatio: 0, widthRatio: 1, heightRatio: 0.1 };
-};
-
 // src/ui/uiPanels/uiGeneric.ts
 var UIGeneric = class {
-  constructor(rect, input, player) {
+  constructor(rect, input, player, ui) {
     this.rect = rect;
     this.input = input;
     this.player = player;
+    this.ui = ui;
   }
   isShown = true;
   buttons = /* @__PURE__ */ new Map();
@@ -896,53 +991,91 @@ var UIGeneric = class {
 
 // src/ui/uiPanels/uiBottom.ts
 var UIBottom = class extends UIGeneric {
-  constructor(input, player) {
+  constructor(input, player, ui) {
     const rect = new Rect(
       HUDConfig.bottom.xRatio * GameConfig.GAME_WIDTH,
       HUDConfig.bottom.yRatio * GameConfig.GAME_HEIGHT,
       HUDConfig.bottom.widthRatio * GameConfig.GAME_WIDTH,
       HUDConfig.bottom.heightRatio * GameConfig.GAME_HEIGHT
     );
-    super(rect, input, player);
+    super(rect, input, player, ui);
+    this.buttons.set(
+      "cave",
+      new ColorButton("purple", this.rect, new Rect(10, (this.rect.height - 30) / 2, 30, 30), this.input, () => EventBus.emit("scene:set", "cave"))
+    );
+    this.hovers.set(
+      "cave",
+      new UIHover(this.buttons.get("cave").dRect, { x: -6, y: -20 }, this.input, "Cave")
+    );
+    this.buttons.set(
+      "forge",
+      new ColorButton("black", this.rect, new Rect(50, (this.rect.height - 30) / 2, 30, 30), this.input, () => EventBus.emit("scene:set", "forge"))
+    );
+    this.hovers.set(
+      "forge",
+      new UIHover(this.buttons.get("forge").dRect, { x: -8, y: -20 }, this.input, "Forge")
+    );
+    this.buttons.set(
+      "tools_book",
+      new ColorButton(
+        "green",
+        this.rect,
+        new Rect(this.rect.width - 40, (this.rect.height - 30) / 2, 30, 30),
+        this.input,
+        () => this.ui.toggleBook("tools")
+      )
+    );
+    this.hovers.set(
+      "tools_book",
+      new UIHover(this.buttons.get("tools_book").dRect, { x: -50, y: -20 }, this.input, "Tools Book")
+    );
   }
   draw(ctx2) {
     if (!this.isShown) return;
     ctx2.fillStyle = "red";
     ctx2.fillRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
     for (const [_, button] of this.buttons) button.draw(ctx2);
+    for (const [_, hover] of this.hovers) hover.draw(ctx2);
   }
   update(dt) {
     for (const [_, button] of this.buttons) button.update(dt);
+    for (const [_, hover] of this.hovers) hover.update(dt);
   }
 };
 
 // src/ui/uiPanels/uiInventory.ts
 var UIInventory = class {
-  constructor(input, player, sRect, dRect, offsetX = 0, offsetY = 0) {
+  constructor(input, player, ui, sRect, dRect) {
     this.input = input;
     this.player = player;
+    this.ui = ui;
     this.sRect = sRect;
     this.dRect = dRect;
-    this.offsetX = offsetX;
-    this.offsetY = offsetY;
+    this.dRect.x += this.sRect.x;
+    this.dRect.y += this.sRect.y;
   }
 };
 var OreInventory = class extends UIInventory {
   slots = [];
-  constructor(input, player, sRect, dRect, offsetX = 0, offsetY = 0) {
-    super(input, player, sRect, dRect, offsetX, offsetY);
+  constructor(input, player, ui, sRect, dRect) {
+    super(input, player, ui, sRect, dRect);
     EventBus.on("inventory:loaded", () => this.setItems());
     EventBus.on("inventory:updated", () => this.setItems());
   }
   draw(ctx2) {
+    ctx2.fillStyle = "brown";
+    ctx2.fillRect(this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
     this.slots.forEach((slot) => {
+      ctx2.fillStyle = "grey";
+      ctx2.fillRect(slot.rect.x, slot.rect.y, slot.rect.width, slot.rect.height);
       ctx2.fillStyle = "white";
       ctx2.textAlign = "left";
-      ctx2.textBaseline = "bottom";
+      ctx2.textBaseline = "top";
       ctx2.font = "22px MonogramFont";
       ctx2.fillText(slot.name, slot.rect.x, slot.rect.y);
+      ctx2.textBaseline = "bottom";
       ctx2.fillText(slot.amount, slot.rect.x, slot.rect.y + slot.rect.height);
-      ctx2.drawImage(slot.sprite, ...slot.spriteClip, slot.rect.x, slot.rect.y, 70, 70);
+      ctx2.drawImage(slot.sprite, ...slot.spriteClip, slot.rect.x, slot.rect.y + 10, 70, 70);
       slot.holdBtns.get("x1").draw(ctx2);
       slot.holdBtns.get("x5").draw(ctx2);
       slot.holdBtns.get("x15").draw(ctx2);
@@ -957,6 +1090,10 @@ var OreInventory = class extends UIInventory {
       slot.holdBtns.get("x5").update(dt);
       slot.holdBtns.get("x15").update(dt);
     });
+    if (this.input.clicked && this.input.isMouseOver(this.dRect)) {
+      this.input.clicked = false;
+      this.ui.removeHolding();
+    }
   }
   setItems() {
     const items = this.player.getInventory("ores");
@@ -964,46 +1101,31 @@ var OreInventory = class extends UIInventory {
     if (items.size > 0) {
       let c = 0;
       items.forEach(({ item, amount }) => {
-        const slotRect = new Rect(this.sRect.x + this.offsetX, this.sRect.y + this.offsetY + 90 * c, 100, 60);
+        const slotRect = new Rect(this.dRect.x + this.dRect.width / 2 - 50, this.dRect.y + 90 * c + 10, 100, 80);
         this.slots.push({
           name: item.name,
           amount: amount.toString(),
           sprite: item.getSprite(),
           spriteClip: item.getClip(),
           rect: slotRect,
-          holdBtns: /* @__PURE__ */ new Map(
-            [
-              ["x1", new LabelButton(
-                "x1",
+          holdBtns: new Map(
+            [1, 5, 15].map((selectAmount, i) => {
+              return ["x" + selectAmount, new LabelButton(
+                "x" + selectAmount,
                 "white",
                 "black",
                 16,
                 slotRect,
-                new Rect(slotRect.width - 30, 0, 30, 20),
+                new Rect(slotRect.width - 30, 20 * i + 20, 30, 20),
                 this.input,
-                () => EventBus.emit("hold_item", item, 1)
-              )],
-              ["x5", new LabelButton(
-                "x5",
-                "white",
-                "black",
-                16,
-                slotRect,
-                new Rect(slotRect.width - 30, 20, 30, 20),
-                this.input,
-                () => EventBus.emit("hold_item", item, 5)
-              )],
-              ["x15", new LabelButton(
-                "x15",
-                "white",
-                "black",
-                16,
-                slotRect,
-                new Rect(slotRect.width - 30, 40, 30, 20),
-                this.input,
-                () => EventBus.emit("hold_item", item, 15)
-              )]
-            ]
+                () => {
+                  if (selectAmount > amount) return;
+                  if (this.ui.getHolding() !== null && this.ui.getHolding().amount + selectAmount > amount) return;
+                  this.ui.setHolding(item, selectAmount, { width: 64, height: 64 }, true);
+                  this.input.clicked = false;
+                }
+              )];
+            })
           )
         });
         c++;
@@ -1013,12 +1135,14 @@ var OreInventory = class extends UIInventory {
 };
 var PlateInventory = class extends UIInventory {
   plates = [];
-  constructor(input, player, sRect, dRect, offsetX = 0, offsetY = 0) {
-    super(input, player, sRect, dRect, offsetX, offsetY);
+  constructor(input, player, ui, sRect, dRect) {
+    super(input, player, ui, sRect, dRect);
     EventBus.on("inventory:loaded", () => this.setItems());
     EventBus.on("inventory:updated", () => this.setItems());
   }
   draw(ctx2) {
+    ctx2.fillStyle = "black";
+    ctx2.fillRect(this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
     this.plates.forEach(({ plate, rect }) => {
       ctx2.fillStyle = "grey";
       ctx2.fillRect(rect.x, rect.y, rect.width, rect.height);
@@ -1026,15 +1150,20 @@ var PlateInventory = class extends UIInventory {
     });
   }
   update(dt) {
-    this.plates.forEach(({ plate, rect }) => {
-      if (this.input.isMouseOver(rect)) {
-        EventBus.emit("set_tooltip", plate.name);
-        if (this.input.clicked) {
-          EventBus.emit("hold_item", plate, 0);
-          this.input.clicked = false;
+    if (this.input.isMouseOver(this.dRect)) {
+      this.plates.forEach(({ plate, rect }) => {
+        if (this.input.isMouseOver(rect)) {
+          if (this.input.clicked) {
+            this.ui.setHolding(plate, 0, { width: 128, height: 128 });
+            this.input.clicked = false;
+          }
         }
+      });
+      if (this.input.clicked && this.ui.isHolding()) {
+        this.ui.removeHolding();
+        this.input.clicked = false;
       }
-    });
+    }
   }
   setItems() {
     this.plates = [];
@@ -1042,7 +1171,7 @@ var PlateInventory = class extends UIInventory {
     this.player.getInventory("plates").forEach((plate) => {
       this.plates.push({
         plate: plate.item,
-        rect: new Rect(this.sRect.x + this.offsetX + 65 * (c % 2), this.sRect.y + this.offsetY + 65 * Math.floor(c / 2), 55, 55)
+        rect: new Rect(this.dRect.x + 65 * (c % 2), this.dRect.y + 65 * Math.floor(c / 2), 55, 55)
       });
       c++;
     });
@@ -1050,8 +1179,8 @@ var PlateInventory = class extends UIInventory {
 };
 var PiecesInventory = class extends UIInventory {
   pieces = [];
-  constructor(input, player, sRect, dRect, offsetX = 0, offsetY = 0) {
-    super(input, player, sRect, dRect, offsetX, offsetY);
+  constructor(input, player, ui, sRect, dRect) {
+    super(input, player, ui, sRect, dRect);
     EventBus.on("inventory:loaded", () => this.setItems());
     EventBus.on("inventory:updated", () => this.setItems());
   }
@@ -1068,15 +1197,22 @@ var PiecesInventory = class extends UIInventory {
     });
   }
   update(dt) {
-    this.pieces.forEach(({ piece, rect }) => {
-      if (this.input.isMouseOver(rect)) {
-        EventBus.emit("set_tooltip", piece.name);
-        if (this.input.clicked) {
-          EventBus.emit("hold_item", piece, 0);
-          this.input.clicked = false;
+    if (this.input.isMouseOver(this.dRect)) {
+      this.pieces.forEach(({ piece, rect }) => {
+        if (this.input.isMouseOver(rect)) {
+          this.ui.setToolTip(piece.name);
+          if (this.input.clicked) {
+            this.ui.setHolding(piece, 0, { width: 128, height: 128 });
+            this.input.clicked = false;
+            return;
+          }
         }
+      });
+      if (this.input.clicked && this.ui.isHolding()) {
+        this.ui.removeHolding();
+        this.input.clicked = false;
       }
-    });
+    }
   }
   setItems() {
     this.pieces = [];
@@ -1084,7 +1220,7 @@ var PiecesInventory = class extends UIInventory {
     this.player.getInventory("pieces").forEach((piece) => {
       this.pieces.push({
         piece: piece.item,
-        rect: new Rect(this.sRect.x + this.offsetX + 65 * (c % 2), this.sRect.y + this.offsetY + 65 * Math.floor(c / 2), 55, 55),
+        rect: new Rect(this.dRect.x + 65 * (c % 2), this.dRect.y + 65 * Math.floor(c / 2), 55, 55),
         amount: piece.amount
       });
       c++;
@@ -1093,8 +1229,8 @@ var PiecesInventory = class extends UIInventory {
 };
 var ToolsInventory = class extends UIInventory {
   tools = [];
-  constructor(input, player, sRect, dRect, offsetX = 0, offsetY = 0) {
-    super(input, player, sRect, dRect, offsetX, offsetY);
+  constructor(input, player, ui, sRect, dRect) {
+    super(input, player, ui, sRect, dRect);
     EventBus.on("inventory:loaded", () => this.setItems());
     EventBus.on("inventory:updated", () => this.setItems());
   }
@@ -1122,7 +1258,7 @@ var ToolsInventory = class extends UIInventory {
     this.player.getInventory("tools").forEach((tool) => {
       this.tools.push({
         tool: tool.item,
-        rect: new Rect(this.sRect.x + this.offsetX + 65 * (c % 2), this.sRect.y + this.offsetY + 65 * Math.floor(c / 2), 55, 55)
+        rect: new Rect(this.dRect.x + 65 * (c % 2), this.dRect.y + 65 * Math.floor(c / 2), 55, 55)
       });
       c++;
     });
@@ -1133,24 +1269,16 @@ var ToolsInventory = class extends UIInventory {
 var UIRight = class extends UIGeneric {
   isReduced = false;
   reduceBtn;
-  holdAmounts = [1, 5, 15];
   currentPage = "ores";
-  pages = /* @__PURE__ */ new Map(
-    [
-      ["ores", new OreInventory(this.input, this.player, this.rect, this.rect, 20, 60)],
-      ["plates", new PlateInventory(this.input, this.player, this.rect, this.rect, 20, 40)],
-      ["pieces", new PiecesInventory(this.input, this.player, this.rect, this.rect, 20, 40)],
-      ["tools", new ToolsInventory(this.input, this.player, this.rect, this.rect, 20, 40)]
-    ]
-  );
-  constructor(input, player) {
+  pages;
+  constructor(input, player, ui) {
     const rect = new Rect(
       HUDConfig.right.xRatio * GameConfig.GAME_WIDTH,
       HUDConfig.right.yRatio * GameConfig.GAME_HEIGHT,
       HUDConfig.right.widthRatio * GameConfig.GAME_WIDTH,
       HUDConfig.right.heightRatio * GameConfig.GAME_HEIGHT
     );
-    super(rect, input, player);
+    super(rect, input, player, ui);
     this.resize();
     this.reduceBtn = new ColorButton("lime", this.rect, new Rect(-30, 0, 30, 30), this.input, () => this.resize());
     this.buttons.set(
@@ -1168,6 +1296,14 @@ var UIRight = class extends UIGeneric {
     this.buttons.set(
       "tools",
       new LabelButton("Tools", "black", "white", 16, this.rect, new Rect(120, 0, 40, 30), this.input, () => this.setPage("tools"))
+    );
+    this.pages = /* @__PURE__ */ new Map(
+      [
+        ["ores", new OreInventory(this.input, this.player, this.ui, this.rect, new Rect(0, 30, this.rect.width, this.rect.height - 30))],
+        ["plates", new PlateInventory(this.input, this.player, this.ui, this.rect, new Rect(0, 30, this.rect.width, this.rect.height - 30))],
+        ["pieces", new PiecesInventory(this.input, this.player, this.ui, this.rect, new Rect(0, 30, this.rect.width, this.rect.height - 30))],
+        ["tools", new ToolsInventory(this.input, this.player, this.ui, this.rect, new Rect(0, 30, this.rect.width, this.rect.height - 30))]
+      ]
     );
   }
   setPage(page) {
@@ -1193,85 +1329,27 @@ var UIRight = class extends UIGeneric {
     if (!this.isShown) return;
     this.reduceBtn.draw(ctx2);
     if (this.isReduced) return;
-    ctx2.fillStyle = "green";
-    ctx2.fillRect(this.rect.x, this.rect.y, this.rect.width, this.rect.height);
     this.pages.get(this.currentPage).draw(ctx2);
     this.buttons.forEach((button) => button.draw(ctx2));
   }
   update(dt) {
     this.reduceBtn.update(dt);
     if (this.isReduced) return;
-    this.pages.get(this.currentPage).update(dt);
     for (const [_, button] of this.buttons) button.update(dt);
-  }
-  drawInventory(ctx2) {
-    if (this.isReduced) return;
-    ctx2.font = "16px MonogramFont";
-    this.buttons.forEach((button) => button.draw(ctx2));
-    ctx2.fillStyle = "white";
-    let c = 0;
-    for (const i of this.player.getInventory(this.currentPage)) {
-      const inventorySlot = new Rect(this.rect.x + 40, this.rect.y + 80 + 80 * c + 10 * c, this.rect.width - 80, 60);
-      ctx2.drawImage(
-        i[1].item.getSprite(),
-        ...i[1].item.getClip(),
-        inventorySlot.x + inventorySlot.width / 2 - 50,
-        inventorySlot.y + inventorySlot.height / 2 - 32,
-        64,
-        64
-      );
-      ctx2.font = "22px MonogramFont";
-      ctx2.textAlign = "left";
-      ctx2.textBaseline = "middle";
-      ctx2.fillText(
-        i[0],
-        inventorySlot.x,
-        inventorySlot.y - 12
-      );
-      ctx2.font = "32px MonogramFont";
-      ctx2.textAlign = "right";
-      ctx2.textBaseline = "middle";
-      ctx2.fillText(
-        i[1].amount.toString(),
-        inventorySlot.x + inventorySlot.width / 2,
-        inventorySlot.y + inventorySlot.height / 2 + 10
-      );
-      ctx2.font = "16px MonogramFont";
-      if (!this.buttons.has(i[0] + "x1")) {
-        this.holdAmounts.forEach((amount, index) => {
-          this.buttons.set(
-            i[0] + "x" + amount,
-            new LabelButton(
-              "x" + amount,
-              "white",
-              "black",
-              16,
-              inventorySlot,
-              new Rect(inventorySlot.width - 30, inventorySlot.height / 3 * index, 30, inventorySlot.height / 3),
-              this.input,
-              () => {
-                EventBus.emit("hold_item", i[1].item, amount);
-              }
-            )
-          );
-        });
-      }
-      c++;
-    }
-    for (const [_, button] of this.buttons) button.draw(ctx2);
+    this.pages.get(this.currentPage).update(dt);
   }
 };
 
 // src/ui/uiPanels/uiTop.ts
 var UITop = class extends UIGeneric {
-  constructor(input, player) {
+  constructor(input, player, ui) {
     const rect = new Rect(
       HUDConfig.top.xRatio * GameConfig.GAME_WIDTH,
       HUDConfig.top.yRatio * GameConfig.GAME_HEIGHT,
       HUDConfig.top.widthRatio * GameConfig.GAME_WIDTH,
       HUDConfig.top.heightRatio * GameConfig.GAME_HEIGHT
     );
-    super(rect, input, player);
+    super(rect, input, player, ui);
     EventBus.on("inventory:loaded", () => this.load());
   }
   draw(ctx2) {
@@ -1285,8 +1363,16 @@ var UITop = class extends UIGeneric {
     for (const [key, button] of this.buttons) {
       button.update(dt);
     }
-    ;
-    for (const [_, hover] of this.hovers) hover.update(dt);
+    for (const [_, hover] of this.hovers) {
+      hover.update(dt);
+      if (UIHover.hasHover === null && hover.isOver) {
+        UIHover.hasHover = hover;
+      } else if (UIHover.hasHover !== null && UIHover.hasHover !== hover) {
+        hover.isOver = false;
+      } else if (UIHover.hasHover === hover && !hover.isOver) {
+        UIHover.hasHover = null;
+      }
+    }
   }
   load() {
     this.buttons.set(
@@ -1295,24 +1381,37 @@ var UITop = class extends UIGeneric {
     );
     this.hovers.set("player_pickaxe", new UIHover(
       this.buttons.get("player_pickaxe").dRect,
-      { x: 50, y: 0 },
+      { x: 0, y: 40 },
       this.input,
       this.player.gear.pickaxe.name,
       `Damage: ${this.player.gear.pickaxe.damage}
 Durability: ${this.player.gear.pickaxe.durability}`
+    ));
+    this.buttons.set(
+      "player_sword",
+      new ImageButton(this.rect, new Rect(50, 5, 50, 50), this.input, this.player.gear.sword.getSprite(), this.player.gear.sword.getClip())
+    );
+    this.hovers.set("player_sword", new UIHover(
+      this.buttons.get("player_sword").dRect,
+      { x: 0, y: 40 },
+      this.input,
+      this.player.gear.sword.name,
+      `Damage: ${this.player.gear.sword.damage}
+Durability: ${this.player.gear.sword.durability}`
     ));
   }
 };
 
 // src/ui/uiPanels/uiHUD.ts
 var uiHUD = class {
-  constructor(input, player) {
+  constructor(input, player, ui) {
     this.input = input;
     this.player = player;
+    this.ui = ui;
     this.sections = /* @__PURE__ */ new Map([
-      ["right", new UIRight(input, player)],
-      ["top", new UITop(input, player)],
-      ["bottom", new UIBottom(input, player)]
+      ["right", new UIRight(input, player, ui)],
+      ["top", new UITop(input, player, ui)],
+      ["bottom", new UIBottom(input, player, ui)]
     ]);
   }
   sections;
@@ -1333,43 +1432,67 @@ var UIManager = class {
   constructor(input, player) {
     this.input = input;
     this.player = player;
-    this.hud = new uiHUD(input, player);
-    EventBus.on("set_tooltip", (tooltip) => this.activeToolTip = tooltip);
+    this.hud = new uiHUD(input, player, this);
+    this.books.set(
+      "tools",
+      new ToolsBook(this.input, "black")
+    );
   }
   hud;
   hovers = /* @__PURE__ */ new Map();
   isHUDActive = true;
   activeToolTip = "";
+  holding = null;
+  activeBook = "";
+  books = /* @__PURE__ */ new Map();
+  setToolTip(toolTip) {
+    this.activeToolTip = toolTip;
+  }
+  setHolding(item, amount, size, sum = false) {
+    if (sum) {
+      if (this.holding !== null && this.holding.item === item) {
+        this.holding.amount += amount;
+        return;
+      }
+    }
+    this.holding = { item, amount, size };
+  }
+  removeHolding() {
+    this.holding = null;
+  }
+  isHolding() {
+    return this.holding !== null;
+  }
+  getHolding() {
+    return this.holding;
+  }
   setIsHUDActive(isHUDActive) {
     this.isHUDActive = isHUDActive;
   }
-  addHUDColorButton(side, name, color, rect, handleClick) {
-    this.hud.sections.get(side).buttons.set(name, new ColorButton(color, this.hud.sections.get(side).rect, rect, this.input));
-    this.hud.sections.get(side).buttons.get(name).setOnClick(handleClick);
-  }
-  addHUDImageButton(side, name, image, clip, rect, handleClick = null) {
-    this.hud.sections.get(side).buttons.set(name, new ImageButton(this.hud.sections.get(side).rect, rect, this.input, image, clip, handleClick));
-  }
-  addButtonHover(button, dPos, title, description = "") {
-    this.hovers.set(title, new UIHover(button.dRect, dPos, this.input, title, description));
-  }
-  getHUDButton(side, name) {
-    return this.hud.sections.get(side).buttons.get(name);
+  toggleBook(book) {
+    if (this.activeBook === book) {
+      this.activeBook = "";
+    } else {
+      this.activeBook = book;
+    }
   }
   draw(ctx2) {
     if (!this.isHUDActive) return;
     this.hud.draw(ctx2);
     this.hovers.forEach((hover) => hover.draw(ctx2));
+    this.drawBook(ctx2);
     this.drawHoldingItem(ctx2);
+    if (this.activeBook !== "") return;
     this.drawToolTip(ctx2);
   }
   drawHoldingItem(ctx2) {
-    if (this.player.holdingItem) {
-      ctx2.drawImage(this.player.holdingItem.item.getSprite(), ...this.player.holdingItem.item.getClip(), this.input.x - 32, this.input.y - 32, 64, 64);
+    if (this.holding !== null) {
+      const { item, amount, size } = this.holding;
+      ctx2.drawImage(item.getSprite(), ...item.getClip(), this.input.x - size.width / 2, this.input.y - size.height / 2, size.width, size.height);
       ctx2.fillStyle = "white";
       ctx2.font = "24px MonogramFont";
-      if (this.player.holdingItem.amount === 0) return;
-      ctx2.fillText(this.player.holdingItem.amount.toString(), this.input.x + 16, this.input.y + 16);
+      if (amount === 0) return;
+      ctx2.fillText(amount.toString(), this.input.x + 16, this.input.y + 16);
     }
   }
   drawToolTip(ctx2) {
@@ -1389,9 +1512,16 @@ var UIManager = class {
     ctx2.fillText(this.activeToolTip, x + wordData.width / 2 + 5, y + 10);
     this.activeToolTip = "";
   }
+  drawBook(ctx2) {
+    if (this.activeBook === "") return;
+    this.books.get(this.activeBook)?.draw(ctx2);
+  }
   update(dt) {
     this.hud.update(dt);
-    this.hovers.forEach((hover) => hover.update(dt));
+    this.hovers.forEach((hover) => {
+      hover.update(dt);
+    });
+    if (this.activeBook !== "") this.books.get(this.activeBook)?.update(dt);
   }
 };
 
@@ -1475,9 +1605,10 @@ var CoalOreBoulder = class extends OreBoulder {
 
 // src/scenes/GenericScene.ts
 var GenericScene = class {
-  constructor(input, player, sprite) {
+  constructor(input, player, ui, sprite) {
     this.input = input;
     this.player = player;
+    this.ui = ui;
     this.sprite = sprite;
   }
   exitedTime = 0;
@@ -1490,12 +1621,12 @@ var GenericScene = class {
 
 // src/scenes/CaveScene.ts
 var CaveScene = class extends GenericScene {
-  constructor(input, player) {
-    const assetManager = AssetManager.getInstance();
-    const sprite = assetManager.getBackgroundImage("caveBackground");
-    super(input, player, sprite);
+  constructor(input, player, ui) {
+    const sprite = AssetManager.getInstance().getBackgroundImage("caveBackground");
+    super(input, player, ui, sprite);
     this.input = input;
     this.player = player;
+    this.ui = ui;
   }
   oreRespawnTime = 20;
   ores = [];
@@ -1522,13 +1653,9 @@ var CaveScene = class extends GenericScene {
     }
   }
   update(dt) {
-    if (this.player.holdingItem && this.input.clicked) {
-      this.player.holdingItem = null;
-      this.input.clicked = false;
-    }
     for (const ore of this.ores) {
       if (this.input.isMouseOver(ore.rect)) {
-        EventBus.emit("set_tooltip", ore.name);
+        this.ui.setToolTip(ore.name);
         if (this.input.clicked) {
           ore.health -= this.player.getPickaxeDamage();
           if (ore.health <= 0) {
@@ -1604,10 +1731,11 @@ var Furnace = class extends GenericObject {
   temperature = 0;
   animatedSprites;
   fuel = null;
-  output = null;
-  outputMelt = 0;
+  smelting = null;
+  smeltProgress = 0;
   maxSpaceAmount = 30;
-  content = [];
+  usedSpaceAmount = 0;
+  inventory = [];
   constructor(rect) {
     const assetManager = AssetManager.getInstance();
     const sprite = assetManager.getObjectImage("furnace").img;
@@ -1643,14 +1771,14 @@ var Furnace = class extends GenericObject {
         if (this.fuel.amount === 0) this.fuel = null;
         this.isActive = false;
       }
-    } else if (this.temperature > 0) {
+    } else {
       this.temperature -= dt;
-      if (this.output && !this.checkIsFull()) {
-        this.outputMelt += dt;
-        if (this.outputMelt >= this.output.item.meltTime) {
-          this.addInnerContent(this.output.item, 1);
-          if (--this.output.amount === 0) this.output = null;
-          this.outputMelt = 0;
+      if (this.smelting && this.usedSpaceAmount < this.maxSpaceAmount) {
+        this.smeltProgress += dt;
+        if (this.smeltProgress >= this.smelting.item.meltTime) {
+          this.smeltToInvetory();
+          if (--this.smelting.amount === 0) this.smelting = null;
+          this.smeltProgress = 0;
         }
       }
     }
@@ -1662,48 +1790,72 @@ var Furnace = class extends GenericObject {
   }
   addFuel(fuel, amount) {
     if (this.fuel !== null) {
-      if (this.fuel.item.name === fuel.name) {
-        this.fuel.amount += amount;
+      if (this.fuel.item.name !== fuel.name) {
+        return false;
+      }
+      this.fuel.amount += amount;
+    } else {
+      this.fuel = { item: fuel, amount };
+      this.isActive = true;
+    }
+    return true;
+  }
+  addSmelting(smelting, amount) {
+    if (this.smelting !== null) {
+      if (this.smelting.item.name === smelting.name) {
+        this.smelting.amount += amount;
         return true;
       }
       return false;
     }
-    this.fuel = { item: fuel, amount };
-    this.isActive = true;
+    this.smelting = { item: smelting, amount };
     return true;
   }
-  addOutput(output, amount) {
-    if (this.output !== null) {
-      if (this.output.item.name === output.name) {
-        this.output.amount += amount;
-        return true;
-      }
-      return false;
-    }
-    this.output = { item: output, amount };
-    return true;
-  }
-  addInnerContent(ore, amount) {
-    for (const c of this.content) {
-      if (c.ore.name === ore.name) {
-        c.amount += amount;
+  smeltToInvetory() {
+    this.usedSpaceAmount++;
+    for (const c of this.inventory) {
+      if (c.ore.name === this.smelting.item.name) {
+        c.amount++;
         return;
       }
     }
-    this.content.push({ ore, amount });
+    this.inventory.push({ ore: this.smelting.item, amount: 1 });
   }
-  checkIsFull() {
-    let amount = 0;
-    for (const c of this.content) {
-      amount += c.amount;
+  passTime(elapsedTime) {
+    if (!this.isActive) return;
+    this.temperature -= elapsedTime;
+    this.smeltProgress += elapsedTime;
+    while (this.temperature <= 0 && this.fuel.amount > 0) {
+      this.fuel.amount--;
+      this.temperature += this.fuel.item.burnTime;
+      if (this.smelting) {
+        if (this.smeltProgress > this.smelting.item.meltTime) {
+          this.smeltProgress -= this.smelting.item.meltTime;
+          if (this.usedSpaceAmount < this.maxSpaceAmount) {
+            this.smeltToInvetory();
+            if (--this.smelting.amount === 0) {
+              this.smelting = null;
+              this.smeltProgress = 0;
+            }
+            ;
+          }
+        }
+      }
     }
-    return amount >= this.maxSpaceAmount;
+    if (this.fuel.amount === 0) {
+      this.fuel = null;
+      this.isActive = false;
+      this.temperature = 0;
+    }
   }
   getFuel() {
     return this.fuel;
   }
-  getOutput() {
-    return this.output;
+  getSmelting() {
+    return this.smelting;
+  }
+  getSmeltProgress() {
+    return this.smeltProgress;
   }
 };
 
@@ -1724,12 +1876,13 @@ var Anvil = class {
 
 // src/scenes/ForgeScene.ts
 var ForgeScene = class extends GenericScene {
-  constructor(input, player) {
+  constructor(input, player, ui) {
     const assetManager = AssetManager.getInstance();
     const sprite = assetManager.getBackgroundImage("forgeBackground");
-    super(input, player, sprite);
+    super(input, player, ui, sprite);
     this.input = input;
     this.player = player;
+    this.ui = ui;
     this.furnaces.push(new Furnace(new Rect(220, 200, 120, 120 * 1.6)));
     this.anvils.push(new Anvil(new Rect(400, 332, 100, 60)));
   }
@@ -1752,6 +1905,10 @@ var ForgeScene = class extends GenericScene {
       if (furnace.isActive) {
         ctx2.fillStyle = "orange";
         ctx2.fillRect(furnaceUi.x + 5, furnaceUi.y + 5 + 40 - 40 * furnace.temperature / furnace.getFuel().item.burnTime, 40, 40 * furnace.temperature / furnace.getFuel().item.burnTime);
+        if (furnace.getSmelting()) {
+          ctx2.fillStyle = "red";
+          ctx2.fillRect(furnaceUi.x + furnaceUi.width - 45, furnaceUi.y + 5 + 40 - 40 * furnace.getSmeltProgress() / furnace.getSmelting().item.meltTime, 40, 40 * furnace.getSmeltProgress() / furnace.getSmelting().item.meltTime);
+        }
       }
       ctx2.strokeStyle = "black";
       ctx2.fillStyle = "black";
@@ -1763,34 +1920,27 @@ var ForgeScene = class extends GenericScene {
         ctx2.drawImage(furnace.getFuel().item.getSprite(), ...furnace.getFuel().item.getClip(), furnaceUi.x + 5, furnaceUi.y + 5, 40, 40);
         ctx2.fillText(furnace.getFuel().amount.toString(), furnaceUi.x + 40, furnaceUi.y + 45);
       }
-      if (furnace.getOutput()) {
-        ctx2.drawImage(furnace.getOutput().item.getSprite(), ...furnace.getOutput().item.getClip(), furnaceUi.x + furnaceUi.width - 45, furnaceUi.y + 5, 40, 40);
-        ctx2.fillText(furnace.getOutput().amount.toString(), furnaceUi.x + furnaceUi.width - 10, furnaceUi.y + 45);
+      if (furnace.getSmelting()) {
+        ctx2.drawImage(furnace.getSmelting().item.getSprite(), ...furnace.getSmelting().item.getClip(), furnaceUi.x + furnaceUi.width - 45, furnaceUi.y + 5, 40, 40);
+        ctx2.fillText(furnace.getSmelting().amount.toString(), furnaceUi.x + furnaceUi.width - 10, furnaceUi.y + 45);
       }
     }
   }
   update(dt) {
+    this.handleFurnaceInteraction(dt);
+    this.handleAnvilInteraction(dt);
+  }
+  handleFurnaceInteraction(dt) {
     for (const furnace of this.furnaces) {
       furnace.update(dt);
       if (this.input.isMouseOver(furnace.rect)) {
-        EventBus.emit("set_tooltip", "Furnace");
-      }
-    }
-    this.handleFurnaceInteraction();
-    for (const anvil of this.anvils) {
-      anvil.update(dt);
-    }
-    this.handleAnvilInteraction();
-  }
-  handleFurnaceInteraction() {
-    for (const furnace of this.furnaces) {
-      if (this.input.clicked) {
-        if (furnace.rect.collide(this.input.getRect())) {
-          if (this.player.holdingItem) {
-            const { item, amount } = this.player.holdingItem;
+        this.ui.setToolTip("Furnace");
+        if (this.input.clicked) {
+          if (this.ui.isHolding()) {
+            const { item, amount } = this.ui.getHolding();
             if (item instanceof Fuel && furnace.addFuel(item, amount)) {
               this.player.removeItem(item, amount);
-            } else if (item instanceof Melt && furnace.addOutput(item, amount)) {
+            } else if (item instanceof Melt && furnace.addSmelting(item, amount)) {
               this.player.removeItem(item, amount);
             }
           } else {
@@ -1798,14 +1948,14 @@ var ForgeScene = class extends GenericScene {
           }
           this.input.clicked = false;
         }
-        this.player.holdingItem = null;
       }
     }
   }
-  handleAnvilInteraction() {
+  handleAnvilInteraction(dt) {
     for (const anvil of this.anvils) {
+      anvil.update(dt);
       if (this.input.isMouseOver(anvil.rect)) {
-        EventBus.emit("set_tooltip", "Anvil");
+        this.ui.setToolTip("Anvil");
         if (this.input.clicked) {
           EventBus.emit("scene:set", "anvil");
           this.input.clicked = false;
@@ -1814,19 +1964,24 @@ var ForgeScene = class extends GenericScene {
     }
   }
   enter() {
+    const enteredTime = this.exitedTime === 0 ? 0 : (Date.now() - this.exitedTime) / 1e3;
+    if (enteredTime > 0) {
+      this.furnaces.forEach((furnace) => furnace.passTime(enteredTime));
+    }
   }
   exit() {
+    this.exitedTime = Date.now();
   }
 };
 
 // src/scenes/QuestsScene.ts
 var QuestsScene = class extends GenericScene {
-  constructor(input, player) {
-    const assetManager = AssetManager.getInstance();
-    const sprite = assetManager.getBackgroundImage("questsBackground");
-    super(input, player, sprite);
+  constructor(input, player, ui) {
+    const sprite = AssetManager.getInstance().getBackgroundImage("questsBackground");
+    super(input, player, ui, sprite);
     this.input = input;
     this.player = player;
+    this.ui = ui;
   }
   draw(ctx2) {
     if (!this.sprite) return;
@@ -1842,11 +1997,12 @@ var QuestsScene = class extends GenericScene {
 
 // src/scenes/SmeltScene.ts
 var SmeltScene = class extends GenericScene {
-  constructor(input, player) {
+  constructor(input, player, ui) {
     const sprite = AssetManager.getInstance().getBackgroundImage("forgeBackground");
-    super(input, player, sprite);
+    super(input, player, ui, sprite);
     this.input = input;
     this.player = player;
+    this.ui = ui;
   }
   draw(ctx2) {
     super.draw(ctx2);
@@ -1865,10 +2021,11 @@ var colors = {
   "Gold Ore": "hsl(50, 80%, 50%)"
 };
 var FurnaceScene = class extends GenericScene {
-  constructor(input, player, furnace) {
+  constructor(input, player, ui, furnace) {
     const assetManager = AssetManager.getInstance();
     const sprite = assetManager.getBackgroundImage("furnaceBackground");
-    super(input, player, sprite);
+    super(input, player, ui, sprite);
+    this.ui = ui;
     this.furnace = furnace;
     this.platePos = new Rect(this.rect.width / 2 - 100, 150, 200, 200);
     this.meltedBackground = {
@@ -1904,27 +2061,36 @@ var FurnaceScene = class extends GenericScene {
     this.drawPlate(ctx2);
   }
   update(dt) {
-    if (this.player.holdingItem && this.input.clicked) {
-      if (this.player.holdingItem?.item instanceof Plate && this.input.isMouseOver(this.platePos)) {
-        this.activePlate = this.player.holdingItem.item;
+    if (this.input.clicked) {
+      if (this.input.isMouseOver(this.platePos)) {
+        if (this.ui.isHolding()) {
+          const { item } = this.ui.getHolding();
+          if (item instanceof Plate) {
+            this.activePlate = item;
+            this.ui.removeHolding();
+          }
+        } else {
+          this.activePlate = null;
+        }
         this.smeltProcess = null;
+        this.input.clicked = false;
       }
-      this.player.holdingItem = null;
     }
     this.smeltBtn.update(dt);
   }
   meltToPlate() {
-    if (this.furnace.content.length === 0 || !this.activePlate) return;
-    const { ore } = this.furnace.content[0];
+    const furnaceInventory = this.furnace.inventory;
+    if (furnaceInventory.length === 0 || !this.activePlate) return;
+    const { ore } = furnaceInventory[0];
     if (this.smeltProcess) {
       if (this.smeltProcess.ore.name === ore.name && this.smeltProcess.amount < this.activePlate.oreNeededAmount) {
         this.smeltProcess.amount += 1;
-        this.furnace.content[0].amount -= 1;
-        if (this.furnace.content[0].amount === 0) this.furnace.content.shift();
+        furnaceInventory[0].amount -= 1;
+        if (furnaceInventory[0].amount === 0) furnaceInventory.shift();
       }
     } else {
       this.smeltProcess = { ore, amount: 1 };
-      this.furnace.content[0].amount -= 1;
+      furnaceInventory[0].amount -= 1;
       this.meltedBackground.color = colors[ore.name];
     }
     if (this.smeltProcess.amount === this.activePlate.oreNeededAmount) {
@@ -1979,7 +2145,7 @@ var FurnaceScene = class extends GenericScene {
     ctx2.fillStyle = "gray";
     ctx2.fillRect(this.furnaceTank.rect.x, this.furnaceTank.rect.y, this.furnaceTank.rect.width, this.furnaceTank.rect.height);
     let outputYPos = this.furnaceTank.rect.y + this.furnaceTank.rect.height;
-    for (const { ore, amount } of this.furnace.content) {
+    for (const { ore, amount } of this.furnace.inventory) {
       outputYPos -= 260 * amount / this.furnace.maxSpaceAmount;
       ctx2.fillStyle = colors[ore.name] ?? "white";
       ctx2.fillRect(this.furnaceTank.rect.x, outputYPos, this.furnaceTank.rect.width, 260 * amount / this.furnace.maxSpaceAmount);
@@ -1994,7 +2160,7 @@ var FurnaceScene = class extends GenericScene {
       this.furnaceTank.rect.y + this.furnaceTank.rect.height
     );
     ctx2.fillText(
-      `${this.furnace.content.reduce((a, b) => a + b.amount, 0)}/${this.furnace.maxSpaceAmount}`,
+      `${this.furnace.usedSpaceAmount}/${this.furnace.maxSpaceAmount}`,
       this.furnaceTank.rect.x + this.furnaceTank.rect.width / 2,
       this.furnaceTank.rect.y + this.furnaceTank.rect.height + 15
     );
@@ -2007,16 +2173,37 @@ var FurnaceScene = class extends GenericScene {
 
 // src/scenes/AnvilScene.ts
 var AnvilScene = class extends GenericScene {
-  constructor(input, player) {
+  constructor(input, player, ui) {
     const sprite = AssetManager.getInstance().getBackgroundImage("anvilBackground");
-    super(input, player, sprite);
+    super(input, player, ui, sprite);
+    this.ui = ui;
+    this.anvilRect = new Rect(160, 126, 330, 200);
   }
+  anvilRect;
+  craftingPieces = [];
   update(dt) {
-    if (this.player.holdingItem) {
-      if (this.input.clicked) {
-        this.player.holdingItem = null;
+    if (this.input.clicked) {
+      this.input.clicked = false;
+      if (this.ui.isHolding()) {
+        const { item, size } = this.ui.getHolding();
+        if (this.input.isMouseOver(this.anvilRect) && item instanceof Piece) {
+          this.craftingPieces.push({ piece: item, rect: new Rect(this.input.x - 64, this.input.y - 64, size.width, size.height) });
+          this.ui.removeHolding();
+        }
+      } else {
+        this.craftingPieces.forEach(({ rect }) => {
+          if (this.input.isMouseOver(rect)) {
+            this.craftingPieces = this.craftingPieces.filter((p) => p.rect !== rect);
+          }
+        });
       }
     }
+  }
+  draw(ctx2) {
+    super.draw(ctx2);
+    this.craftingPieces.forEach(({ piece, rect }) => {
+      ctx2.drawImage(piece.getSprite(), ...piece.getClip(), rect.x, rect.y, rect.width, rect.height);
+    });
   }
   enter() {
   }
@@ -2026,9 +2213,10 @@ var AnvilScene = class extends GenericScene {
 
 // src/core/SceneManager.ts
 var SceneManager = class {
-  constructor(input, player) {
+  constructor(input, player, ui) {
     this.input = input;
     this.player = player;
+    this.ui = ui;
     EventBus.on("scene:set", (scene, ...args) => {
       this.setScene(scene, ...args);
     });
@@ -2061,7 +2249,7 @@ var SceneManager = class {
       newScene = this.loadedScenes.get(scene);
     } else {
       const SceneClass = this.sceneClasses[scene];
-      newScene = new SceneClass(this.input, this.player, ...args);
+      newScene = new SceneClass(this.input, this.player, this.ui, ...args);
       this.loadedScenes.set(scene, newScene);
     }
     newScene.enter();
@@ -2077,11 +2265,7 @@ var Game = class {
   constructor(input) {
     this.player = new Player();
     this.uiManager = new UIManager(input, this.player);
-    this.sceneManager = new SceneManager(input, this.player);
-    this.uiManager.addHUDColorButton("bottom", "cave", "purple", new Rect(10, 10, 30, 30), () => this.sceneManager.setScene("cave"));
-    this.uiManager.addButtonHover(this.uiManager.getHUDButton("bottom", "cave"), new Rect(-5, -20, 40, 20), "Cave");
-    this.uiManager.addHUDColorButton("bottom", "forge", "black", new Rect(50, 10, 30, 30), () => this.sceneManager.setScene("forge"));
-    this.uiManager.addButtonHover(this.uiManager.getHUDButton("bottom", "forge"), new Rect(-8, -20, 46, 20), "Forge");
+    this.sceneManager = new SceneManager(input, this.player, this.uiManager);
   }
   async start() {
     const assetManager = AssetManager.getInstance();

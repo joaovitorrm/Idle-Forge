@@ -5,13 +5,14 @@ import type Player from "../../entities/Player.js";
 
 import Rect from "../../util/rect.js";
 import { Button, ColorButton } from "../uiElements/uiButton.js";
+import type { UIManager } from "../uiManager.js";
 import { UIGeneric } from "./uiGeneric.js";
 
 export default class UILeft extends UIGeneric {
 
     protected isReduced : boolean = false;
 
-    constructor(input : InputManager, player : Player) {
+    constructor(input : InputManager, player : Player, ui : UIManager) {
 
         const rect = new Rect(
             HUDConfig.left.xRatio * GameConfig.GAME_WIDTH, 
@@ -20,7 +21,7 @@ export default class UILeft extends UIGeneric {
             HUDConfig.left.heightRatio * GameConfig.GAME_HEIGHT
         );
 
-        super(rect, input, player);
+        super(rect, input, player, ui);
 
         this.resize();
 

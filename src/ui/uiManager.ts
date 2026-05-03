@@ -1,66 +1,96 @@
 import { EventBus } from "../core/EventBus.js";
 import type { InputManager } from "../core/InputManager.js";
+import type { Item } from "../entities/Item.js";
 import type Player from "../entities/Player.js";
-import type Rect from "../util/rect.js";
-import { Button, ColorButton, ImageButton } from "./uiElements/uiButton.js";
+import { ToolsBook, type UIBook } from "./uiElements/Book/UIBook.js";
 import UIHover from "./uiElements/uiHover.js";
 import { uiHUD } from "./uiPanels/uiHUD.js";
 
-type HUDSection = "right" | "top" | "bottom";
-
 export class UIManager {
 
-    hud: uiHUD;
-    hovers : Map<string, UIHover> = new Map<string, UIHover>();
-    isHUDActive: boolean = true;
-    activeToolTip : string = "";
+    private hud: uiHUD;
+    private hovers : Map<string, UIHover> = new Map<string, UIHover>();
+    private isHUDActive: boolean = true;
+
+    private activeToolTip : string = "";
+    private holding : { item : Item, amount : number, size : { width : number, height : number } } | null = null;
+
+    private activeBook : string = "";
+    private books : Map<string, UIBook> = new Map<string, UIBook>();
 
     constructor(private input: InputManager, protected player: Player) {
-        this.hud = new uiHUD(input, player);
-        EventBus.on("set_tooltip", (tooltip : string) => this.activeToolTip = tooltip);
+        this.hud = new uiHUD(input, player, this);
+
+        this.books.set("tools",
+            new ToolsBook(this.input, "black")
+        )
+    }
+
+    public setToolTip(toolTip: string) {
+        this.activeToolTip = toolTip;
+    }
+
+    public setHolding(item: Item, amount: number, size: { width: number, height: number }, sum : boolean = false) {
+        if (sum) {
+            if (this.holding !== null && this.holding.item === item) {
+                this.holding.amount += amount;
+                return;
+            }
+        }
+        this.holding = { item, amount, size };
+    }
+
+    public removeHolding() {
+        this.holding = null;
+    }
+
+    public isHolding() : boolean {
+        return this.holding !== null;
+    }
+
+    public getHolding() : { item : Item, amount : number, size : { width : number, height : number } } | null {
+        return this.holding;
     }
 
     public setIsHUDActive(isHUDActive: boolean) {
         this.isHUDActive = isHUDActive;
     }
 
-    public addHUDColorButton(side: HUDSection, name: string, color: string, rect: Rect, handleClick: (args?: unknown) => void): void {
-        this.hud.sections.get(side)!.buttons.set(name, new ColorButton(color, this.hud.sections.get(side)!.rect, rect, this.input));
-        this.hud.sections.get(side)!.buttons.get(name)!.setOnClick(handleClick);
-    }
-
-    public addHUDImageButton(side: HUDSection, name: string, image: HTMLImageElement, clip: [number, number, number, number] | null, rect: Rect, handleClick: ((args?: unknown) => void) | null = null): void {
-        this.hud.sections.get(side)!.buttons.set(name, new ImageButton(this.hud.sections.get(side)!.rect, rect, this.input, image, clip, handleClick));
-    }
-
-    public addButtonHover(button : Button, dPos : { x : number, y : number}, title : string, description : string = "") : void {
-        this.hovers.set(title, new UIHover(button.dRect, dPos, this.input, title, description));
-    }
-
-    public getHUDButton(side: HUDSection, name: string): Button | undefined {
-        return this.hud.sections.get(side)!.buttons.get(name);
+    public toggleBook(book: string) {
+        if (this.activeBook === book) {
+            this.activeBook = "";
+        } else {
+            this.activeBook = book;
+        }
     }
 
     public draw(ctx: CanvasRenderingContext2D): void {
         if (!this.isHUDActive) return;
 
         this.hud.draw(ctx);
+
         this.hovers.forEach((hover) => hover.draw(ctx));
 
+        this.drawBook(ctx);
+
         this.drawHoldingItem(ctx);
-        this.drawToolTip(ctx);        
+
+        if (this.activeBook !== "") return;
+
+        this.drawToolTip(ctx);
     }
 
     private drawHoldingItem(ctx: CanvasRenderingContext2D) {
-        if (this.player.holdingItem) {
-            ctx.drawImage(this.player.holdingItem!.item.getSprite(), ...this.player.holdingItem!.item.getClip(), this.input.x - 32, this.input.y - 32, 64, 64);
+        if (this.holding !== null) {
+            const {item, amount, size} = this.holding;
+            ctx.drawImage(item.getSprite(), ...item.getClip(), this.input.x - size.width / 2, this.input.y - size.height / 2, size.width, size.height);
 
             ctx.fillStyle = "white";
             ctx.font = "24px MonogramFont";
 
-            if (this.player.holdingItem!.amount === 0) return;
+            if (amount === 0) return;
 
-            ctx.fillText(this.player.holdingItem!.amount.toString(), this.input.x + 16, this.input.y + 16);
+            ctx.fillText(amount.toString(), this.input.x + 16, this.input.y + 16);
         }
     }
 
@@ -89,8 +119,18 @@ export class UIManager {
         this.activeToolTip = "";
     }
 
+    private drawBook(ctx: CanvasRenderingContext2D) {
+        if (this.activeBook === "") return;
+
+        this.books.get(this.activeBook)?.draw(ctx);
+    }
+
     public update(dt: number) {
         this.hud.update(dt);
-        this.hovers.forEach((hover) => hover.update(dt));
+        this.hovers.forEach((hover) => {
+            hover.update(dt);
+        });
+
+        if (this.activeBook !== "") this.books.get(this.activeBook)?.update(dt);
     }
 }

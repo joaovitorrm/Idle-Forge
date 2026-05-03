@@ -50,11 +50,18 @@ const plates = {
 
 const pieces = {
     copperPickaxeHead: { path: piecesSheets, clip: [0, 0, 32, 32] },
-    copperHandle: { path: piecesSheets, clip: [0, 32, 32, 32] },
-    copperUnion: { path: piecesSheets, clip: [0, 32 * 2, 32, 32] },
-
     goldPickaxeHead: { path: piecesSheets, clip: [32, 0, 32, 32] },
+
+    copperSwordHead: { path: piecesSheets, clip: [0, 32 * 3, 32, 32] },
+    goldSwordHead: { path: piecesSheets, clip: [32, 32 * 3, 32, 32] },
+
+    copperSwordHandle: { path: piecesSheets, clip: [0, 32 * 4, 32, 32] },
+    goldSwordHandle: { path: piecesSheets, clip: [32, 32 * 4, 32, 32] },
+
+    copperHandle: { path: piecesSheets, clip: [0, 32, 32, 32] },
     goldHandle: { path: piecesSheets, clip: [32, 32, 32, 32] },
+
+    copperUnion: { path: piecesSheets, clip: [0, 32 * 2, 32, 32] },
     goldUnion: { path: piecesSheets, clip: [32, 32 * 2, 32, 32] },
 }
 

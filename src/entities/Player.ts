@@ -1,9 +1,10 @@
 import { EventBus } from "../core/EventBus.js";
 import Inventory from "./Inventory.js";
-import { handlePlate, type Item, Ore, Pickaxe, pickaxeHeadPlate, Piece, Plate, StarterPickaxe, swordHandlerPlate, swordHeadPlate, Tool, unionPlate } from "./Item.js";
+import { handlePlate, type Item, Ore, Pickaxe, pickaxeHeadPlate, Piece, Plate, StarterPickaxe, StarterSword, Sword, swordHandlerPlate, swordHeadPlate, Tool, unionPlate } from "./Item.js";
 
 interface Gear {
     "pickaxe": Pickaxe | null,
+    "sword": Sword | null
 }
 
 export interface Inventories {
@@ -23,10 +24,8 @@ export default class Player {
     };
     public gear: Gear = {
         "pickaxe": null,
+        "sword": null
     };
-    public holdingItem: { item: Item, amount: number } | null = null;
-    //public unlockedPlates : Map<string, Plate> = new Map();
-
 
     async init() {
         if (localStorage.getItem("playerData")) {
@@ -34,7 +33,10 @@ export default class Player {
             this.money = playerData.money;
             this.gear = playerData.gear;
         } else {
-            this.gear = { "pickaxe": await StarterPickaxe.create() };
+            this.gear = { 
+                "pickaxe": await StarterPickaxe.create(),
+                "sword": await StarterSword.create()
+            };
             this.inventories.plates.addItem(new pickaxeHeadPlate(), 1);
             this.inventories.plates.addItem(new handlePlate(), 1);
             this.inventories.plates.addItem(new unionPlate(), 1);
@@ -43,21 +45,6 @@ export default class Player {
         }
 
         Object.values(this.inventories).forEach(inventory => inventory.init());
-
-        this.initEvents();
-    }
-
-    initEvents(): void {
-        EventBus.on("hold_item", (item: Item, amount: number) => {
-            if (this.getItemAmount(item) < (this.holdingItem ? this.holdingItem.amount : 0) + amount) return;
-
-            if (this.holdingItem !== null && this.holdingItem.item.name === item.name) {
-                this.holdingItem.amount += amount;
-                return;
-            }
-
-            this.holdingItem = { item, amount };
-        })
 
         EventBus.emit("inventory:loaded");
     }

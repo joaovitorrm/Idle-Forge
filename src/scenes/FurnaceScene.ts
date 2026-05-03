@@ -1,9 +1,11 @@
 import { AssetManager } from "../core/AssetManager.js";
+import { EventBus } from "../core/EventBus.js";
 import type { InputManager } from "../core/InputManager.js";
 import type Furnace from "../entities/Furnace.js";
 import { Ore, Plate } from "../entities/Item.js";
 import type Player from "../entities/Player.js";
 import { LabelButton, type Button } from "../ui/uiElements/uiButton.js";
+import type { UIManager } from "../ui/uiManager.js";
 import Rect from "../util/rect.js";
 import { GenericScene } from "./GenericScene.js";
 
@@ -21,12 +23,12 @@ export default class FurnaceScene extends GenericScene {
     private smeltProcess: { ore: Ore, amount: number } | null = null;
     private smeltBtn: Button;
 
-    constructor(input: InputManager, player: Player, private furnace: Furnace) {
+    constructor(input: InputManager, player: Player, protected ui: UIManager, private furnace: Furnace) {
 
         const assetManager = AssetManager.getInstance();
         const sprite = assetManager.getBackgroundImage("furnaceBackground")!;
 
-        super(input, player, sprite);
+        super(input, player, ui, sprite);
 
         this.platePos = new Rect(this.rect.width / 2 - 100, 150, 200, 200);
 
@@ -55,37 +57,45 @@ export default class FurnaceScene extends GenericScene {
     }
 
     update(dt: number) {
-        if (this.player.holdingItem && this.input.clicked) {
-            if (this.player.holdingItem?.item instanceof Plate && this.input.isMouseOver(this.platePos)) {
-                this.activePlate = this.player.holdingItem.item;
+        if (this.input.clicked) {
+            if (this.input.isMouseOver(this.platePos)) {
+                if (this.ui.isHolding()) {
+                    const { item } = this.ui.getHolding()!;
+                    if (item instanceof Plate) {
+                        this.activePlate = item;
+                        this.ui.removeHolding();
+                    }
+                } else {
+                    this.activePlate = null;
+                }
                 this.smeltProcess = null;
+                this.input.clicked = false;
             }
-            this.player.holdingItem = null;
         }
         this.smeltBtn.update(dt);
     }
 
     meltToPlate() {
-        if (this.furnace.content.length === 0 || !this.activePlate) return;
+        const furnaceInventory = this.furnace.inventory;
+        if (furnaceInventory.length === 0 || !this.activePlate) return;
 
-        const { ore } = this.furnace.content[0]!;
+        const { ore } = furnaceInventory[0]!;
         if (this.smeltProcess) {
             if (this.smeltProcess.ore.name === ore.name && this.smeltProcess.amount < this.activePlate.oreNeededAmount) {
                 this.smeltProcess.amount += 1;
-                this.furnace.content[0]!.amount -= 1;
-                if (this.furnace.content[0]!.amount === 0) this.furnace.content.shift();
-
-            }           
+                furnaceInventory[0]!.amount -= 1;
+                if (furnaceInventory[0]!.amount === 0) furnaceInventory.shift();
+            }
         } else {
             this.smeltProcess = { ore, amount: 1 };
-            this.furnace.content[0]!.amount -= 1;
+            furnaceInventory[0]!.amount -= 1;
             this.meltedBackground.color = colors[ore.name as keyof typeof colors];
         }
 
         if (this.smeltProcess.amount === this.activePlate.oreNeededAmount) {
             this.player.addItem(this.activePlate!.getPiece(ore), 1);
             this.activePlate = null;
-            this.smeltProcess = null;            
+            this.smeltProcess = null;
         }
     }
 
@@ -139,7 +149,7 @@ export default class FurnaceScene extends GenericScene {
         ctx.fillStyle = "gray";
         ctx.fillRect(this.furnaceTank.rect.x, this.furnaceTank.rect.y, this.furnaceTank.rect.width, this.furnaceTank.rect.height);
         let outputYPos = this.furnaceTank.rect.y + this.furnaceTank.rect.height;
-        for (const { ore, amount } of this.furnace.content) {
+        for (const { ore, amount } of this.furnace.inventory) {
             outputYPos -= 260 * amount / this.furnace.maxSpaceAmount;
             ctx.fillStyle = colors[ore.name as keyof typeof colors] ?? "white";
             ctx.fillRect(this.furnaceTank.rect.x, outputYPos, this.furnaceTank.rect.width, (260 * amount / this.furnace.maxSpaceAmount));
@@ -157,7 +167,7 @@ export default class FurnaceScene extends GenericScene {
         )
 
         ctx.fillText(
-            `${this.furnace.content.reduce((a, b) => a + b.amount, 0)}/${this.furnace.maxSpaceAmount}`,
+            `${this.furnace.usedSpaceAmount}/${this.furnace.maxSpaceAmount}`,
             this.furnaceTank.rect.x + this.furnaceTank.rect.width / 2,
             this.furnaceTank.rect.y + this.furnaceTank.rect.height + 15
         );

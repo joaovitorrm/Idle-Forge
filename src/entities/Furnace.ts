@@ -1,7 +1,7 @@
 import { AssetManager } from "../core/AssetManager.js";
 import type Rect from "../util/rect.js";
 import { GenericObject } from "./GenericObject.js";
-import { CoalOre, CopperOre, Fuel, GoldOre, Item, Melt, Ore, type OreType } from "./Item.js";
+import { Fuel, Melt } from "./Item.js";
 
 export default class Furnace extends GenericObject {
 
@@ -16,12 +16,14 @@ export default class Furnace extends GenericObject {
     private animatedSprites: Map<number, { img: HTMLImageElement, clip: [number, number, number, number] }>;
 
     private fuel: { item: Fuel, amount: number } | null = null;
-    private output: { item: Melt, amount: number } | null = null;
+    private smelting: { item: Melt, amount: number } | null = null;
 
-    private outputMelt : number = 0;
+    private smeltProgress: number = 0;
 
-    public maxSpaceAmount : number = 30;
-    public content : { ore : Melt, amount : number}[] = [];
+    public maxSpaceAmount: number = 30;
+    public usedSpaceAmount: number = 0;
+
+    public inventory: { ore: Melt, amount: number }[] = [];
 
     constructor(rect: Rect) {
 
@@ -45,12 +47,11 @@ export default class Furnace extends GenericObject {
             ctx.drawImage(this.sprite!, ...this.spriteClip, this.rect.x, this.rect.y, this.rect.width, this.rect.height);
         } else {
             ctx.drawImage(
-                this.animatedSprites.get(this.animationStep)!.img, 
+                this.animatedSprites.get(this.animationStep)!.img,
                 ...this.animatedSprites.get(this.animationStep)!.clip,
                 this.rect.x, this.rect.y, this.rect.width, this.rect.height
             );
         }
-        
     }
 
     update(dt: number) {
@@ -66,14 +67,14 @@ export default class Furnace extends GenericObject {
                 this.isActive = false;
             }
         }
-        else if (this.temperature > 0) {
+        else {
             this.temperature -= dt;
-            if (this.output && !this.checkIsFull()) {
-                this.outputMelt += dt;
-                if (this.outputMelt >= this.output.item.meltTime) {
-                    this.addInnerContent(this.output.item, 1);
-                    if (--this.output.amount === 0) this.output = null;
-                    this.outputMelt = 0;
+            if (this.smelting && this.usedSpaceAmount < this.maxSpaceAmount) {
+                this.smeltProgress += dt;
+                if (this.smeltProgress >= this.smelting.item.meltTime) {
+                    this.smeltToInvetory();
+                    if (--this.smelting.amount === 0) this.smelting = null;
+                    this.smeltProgress = 0;
                 }
             }
         }
@@ -86,56 +87,86 @@ export default class Furnace extends GenericObject {
         this.animationTimer += dt * 150;
     }
 
-    addFuel(fuel: Fuel, amount: number) : boolean {
+    addFuel(fuel: Fuel, amount: number): boolean {
         if (this.fuel !== null) {
-            if (this.fuel.item.name === fuel.name) {
-                this.fuel.amount += amount;
+            if (this.fuel.item.name !== fuel.name) {
+                return false;
+            }
+            this.fuel.amount += amount;
+        } else {
+            this.fuel = { item: fuel, amount: amount };
+            this.isActive = true;
+        }
+
+        return true;
+    }
+
+    addSmelting(smelting: Melt, amount: number): boolean {
+        if (this.smelting !== null) {
+            if (this.smelting.item.name === smelting.name) {
+                this.smelting.amount += amount;
                 return true;
             }
             return false;
         }
 
-        this.fuel = { item: fuel, amount: amount };
-        this.isActive = true;
+        this.smelting = { item: smelting, amount: amount };
         return true;
     }
 
-    addOutput(output: Melt, amount: number) : boolean {
-        if (this.output !== null) {
-            if (this.output.item.name === output.name) {
-                this.output.amount += amount;
-                return true;
-            }
-            return false;
-        }
-
-        this.output = { item: output, amount: amount };
-        return true;
-    }
-
-    private addInnerContent(ore : Melt, amount : number) {
-        for (const c of this.content) {
-            if (c.ore.name === ore.name) {
-                c.amount += amount;
+    private smeltToInvetory() {
+        this.usedSpaceAmount++;
+        for (const c of this.inventory) {
+            if (c.ore.name === this.smelting!.item.name) {
+                c.amount++;
                 return;
             }
         }
-        this.content.push({ore, amount});
+        this.inventory.push({ ore: this.smelting!.item, amount: 1 });
     }
 
-    private checkIsFull() : boolean {
-        let amount = 0;
-        for (const c of this.content) {
-            amount += c.amount;
+    public passTime(elapsedTime: number) {
+        if (!this.isActive) return;
+
+        this.temperature -= elapsedTime;
+        this.smeltProgress += elapsedTime;
+
+        while (this.temperature <= 0 && this.fuel!.amount > 0) {
+            this.fuel!.amount--;
+            this.temperature += this.fuel!.item.burnTime;
+            
+            if (this.smelting) {
+                if (this.smeltProgress > this.smelting!.item.meltTime) {
+                    this.smeltProgress -= this.smelting!.item.meltTime;
+                    if (this.usedSpaceAmount < this.maxSpaceAmount) {
+                        this.smeltToInvetory();
+                        if (--this.smelting!.amount === 0) {
+                            this.smelting = null;
+                            this.smeltProgress = 0;
+                        };
+                    }
+                }
+            }
         }
-        return amount >= this.maxSpaceAmount;
+        
+        if (this.fuel!.amount === 0) {
+            this.fuel = null;
+            this.isActive = false;
+            this.temperature = 0;
+        }
+
+
     }
 
     getFuel(): { item: Fuel, amount: number } | null {
         return this.fuel;
     }
 
-    getOutput(): { item: Melt, amount: number } | null {
-        return this.output;
+    getSmelting(): { item: Melt, amount: number } | null {
+        return this.smelting;
+    }
+
+    getSmeltProgress(): number {
+        return this.smeltProgress;
     }
 }

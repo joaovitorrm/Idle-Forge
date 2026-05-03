@@ -167,15 +167,17 @@ export class Pickaxe extends Tool {
     ) {
         super(name, spriteKey, combinedSprite);
 
-        this.damage = 
+        this.damage = Math.floor(
             oreData[head.oreType].head.damageImpact * 
             oreData[handle.oreType].handle.damageImpactMultiplier * 
-            oreData[union.oreType].union.damageCutMultiplier;
+            oreData[union.oreType].union.damageCutMultiplier
+        );
 
-        this.durability = 
+        this.durability = Math.floor(
             oreData[head.oreType].head.durability * 
             oreData[handle.oreType].handle.durabilityMultiplier * 
-            oreData[union.oreType].union.durabilityMultiplier;
+            oreData[union.oreType].union.durabilityMultiplier
+        );
     }
 
     static async create(name: string | null, head: Piece, handle: Piece, union: Piece) : Promise<Pickaxe> {
@@ -200,6 +202,55 @@ export class Pickaxe extends Tool {
     }
 }
 
+export class Sword extends Tool {
+    public damage : number;
+    public durability : number;
+    
+    protected constructor(
+        name: string,
+        spriteKey: SpriteKey,
+        combinedSprite: ImageBitmap,
+        public head: Piece,
+        public handle: Piece,
+        public union: Piece
+    ) {
+        super(name, spriteKey, combinedSprite);
+
+        this.damage = Math.floor(
+            oreData[head.oreType].head.damageCut * 
+            oreData[handle.oreType].handle.damageCutMultiplier * 
+            oreData[union.oreType].union.damageCutMultiplier
+        );
+
+        this.durability = Math.floor(
+            oreData[head.oreType].head.durability * 
+            oreData[handle.oreType].handle.durabilityMultiplier * 
+            oreData[union.oreType].union.durabilityMultiplier
+        );
+    }
+
+    static async create(name: string | null, head: Piece, handle: Piece, union: Piece) : Promise<Sword> {
+        const combined = await AssetManager.getInstance().getCombinedImage(
+            [
+                { spriteKey: handle.spriteKey, pos: new Rect(0, 0, 32, 32) },
+                { spriteKey: head.spriteKey, pos: new Rect(6, -5, 32, 32) },
+                { spriteKey: union.spriteKey, pos: new Rect(-1, 1, 32, 32) }
+                
+            ],
+            32, 32
+        );
+
+        return new Sword(
+            name ?? `${head.oreType.charAt(0).toUpperCase() + head.oreType.slice(1)} Sword`,
+            head.spriteKey,
+            combined,
+            head,
+            handle,
+            union
+        );
+    }
+}
+
 export class StarterPickaxe extends Pickaxe {
     private constructor(name : string, key : SpriteKey, sprite : ImageBitmap, head : Piece, handle : Piece, union : Piece) {
         super(name, key, sprite, head, handle, union);
@@ -211,9 +262,21 @@ export class StarterPickaxe extends Pickaxe {
         const union = new Piece("copper", "Union");
         return await Pickaxe.create(null, head, handle, union);
     }
-
-    getDamage() { return 1; }
 }
+
+export class StarterSword extends Sword {
+    private constructor(name : string, key : SpriteKey, sprite : ImageBitmap, head : Piece, handle : Piece, union : Piece) {
+        super(name, key, sprite, head, handle, union);
+    }
+
+    static async create() {
+        const head = new Piece("gold", "Sword Head");
+        const handle = new Piece("copper", "Handle");
+        const union = new Piece("copper", "Sword Handle");
+        return await Sword.create(null, head, handle, union);
+    }
+}
+
 
 //========================================================
 /*                      PLATES                          */

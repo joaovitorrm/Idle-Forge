@@ -18,11 +18,11 @@ export default class Inventory<T extends Item> {
                 throw new Error(`Tipo de item ${item.constructor.name} não permitido neste inventário.`);
             }
         }
-
+        
         const existing = this.inventory.get(item.name);
         const newAmount = (existing?.amount ?? 0) + amount;
         this.inventory.set(item.name, { item, amount: newAmount });
-        EventBus.emit("inventory:update");
+        EventBus.emit("inventory:updated");
         this.save();
     }
 
@@ -36,7 +36,7 @@ export default class Inventory<T extends Item> {
         const newAmount = existing.amount - amount;
         if (newAmount > 0) this.inventory.set(item.name, { item, amount: newAmount });
         else this.inventory.delete(item.name);
-        EventBus.emit("inventory:update");
+        EventBus.emit("inventory:updated");
         this.save();
     }
 

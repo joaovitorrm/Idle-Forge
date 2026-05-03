@@ -16,13 +16,13 @@ export class Game {
         this.player = new Player();
 
         this.uiManager = new UIManager(input, this.player);
-        this.sceneManager = new SceneManager(input, this.player);
+        this.sceneManager = new SceneManager(input, this.player, this.uiManager);
         
-        this.uiManager.addHUDColorButton("bottom", "cave", "purple", new Rect(10, 10, 30, 30), () => this.sceneManager.setScene("cave"));
+        /* this.uiManager.addHUDColorButton("bottom", "cave", "purple", new Rect(10, 10, 30, 30), () => this.sceneManager.setScene("cave"));
         this.uiManager.addButtonHover(this.uiManager.getHUDButton("bottom", "cave")!, new Rect(-5, -20, 40, 20), "Cave");
 
         this.uiManager.addHUDColorButton("bottom", "forge", "black", new Rect(50, 10, 30, 30), () => this.sceneManager.setScene("forge"));
-        this.uiManager.addButtonHover(this.uiManager.getHUDButton("bottom", "forge")!, new Rect(-8, -20, 46, 20), "Forge");
+        this.uiManager.addButtonHover(this.uiManager.getHUDButton("bottom", "forge")!, new Rect(-8, -20, 46, 20), "Forge"); */
     }
 
     async start() {

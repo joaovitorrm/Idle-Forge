@@ -5,10 +5,20 @@ import type Player from "../../entities/Player.js";
 import Rect from "../../util/rect.js";
 import { drawHitBox } from "../../util/utils.js";
 import { LabelButton, type Button } from "../uiElements/uiButton.js"
+import type { UIManager } from "../uiManager.js";
 
 export default abstract class UIInventory {
 
-    constructor(protected input: InputManager, protected player: Player, protected sRect: Rect, protected dRect: Rect, protected offsetX: number = 0, protected offsetY: number = 0) { }
+    constructor(
+        protected input: InputManager,
+        protected player: Player,
+        protected ui: UIManager,
+        protected sRect: Rect,
+        protected dRect: Rect
+    ) {
+        this.dRect.x += this.sRect.x;
+        this.dRect.y += this.sRect.y;
+    }
 
     abstract draw(ctx: CanvasRenderingContext2D): void;
 
@@ -28,24 +38,33 @@ export class OreInventory extends UIInventory {
 
     private slots: OreInventorySlotStyle[] = [];
 
-    constructor(input: InputManager, player: Player, sRect: Rect, dRect: Rect, offsetX: number = 0, offsetY: number = 0) {
-        super(input, player, sRect, dRect, offsetX, offsetY);
+    constructor(input: InputManager, player: Player, ui: UIManager, sRect: Rect, dRect: Rect) {
+        super(input, player, ui, sRect, dRect);
 
         EventBus.on("inventory:loaded", () => this.setItems());
         EventBus.on("inventory:updated", () => this.setItems());
     }
 
     draw(ctx: CanvasRenderingContext2D): void {
+
+        ctx.fillStyle = "brown";
+        ctx.fillRect(this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
+
         this.slots.forEach((slot) => {
+
+            ctx.fillStyle = "grey";
+            ctx.fillRect(slot.rect.x, slot.rect.y, slot.rect.width, slot.rect.height);
+
             ctx.fillStyle = "white";
             ctx.textAlign = "left";
-            ctx.textBaseline = "bottom";
+            ctx.textBaseline = "top";
             ctx.font = "22px MonogramFont";
             ctx.fillText(slot.name, slot.rect.x, slot.rect.y);
 
+            ctx.textBaseline = "bottom";
             ctx.fillText(slot.amount, slot.rect.x, slot.rect.y + slot.rect.height);
 
-            ctx.drawImage(slot.sprite, ...slot.spriteClip, slot.rect.x, slot.rect.y, 70, 70);
+            ctx.drawImage(slot.sprite, ...slot.spriteClip, slot.rect.x, slot.rect.y + 10, 70, 70);
             slot.holdBtns.get("x1")!.draw(ctx);
             slot.holdBtns.get("x5")!.draw(ctx);
             slot.holdBtns.get("x15")!.draw(ctx);
@@ -62,6 +81,11 @@ export class OreInventory extends UIInventory {
             slot.holdBtns.get("x5")!.update(dt);
             slot.holdBtns.get("x15")!.update(dt);
         })
+
+        if (this.input.clicked && this.input.isMouseOver(this.dRect)) {
+            this.input.clicked = false;
+            this.ui.removeHolding();
+        }
     }
 
     setItems(): void {
@@ -71,8 +95,8 @@ export class OreInventory extends UIInventory {
 
         if (items.size > 0) {
             let c = 0;
-            items.forEach(({item, amount}) => {
-                const slotRect = new Rect(this.sRect.x + this.offsetX, this.sRect.y + this.offsetY + (90 * c), 100, 60);
+            items.forEach(({ item, amount }) => {
+                const slotRect = new Rect(this.dRect.x + this.dRect.width / 2 - 50, this.dRect.y + (90 * c) + 10, 100, 80);
                 this.slots.push({
                     name: item.name,
                     amount: amount.toString(),
@@ -80,14 +104,15 @@ export class OreInventory extends UIInventory {
                     spriteClip: item.getClip(),
                     rect: slotRect,
                     holdBtns: new Map(
-                        [
-                            ["x1", new LabelButton("x1", "white", "black", 16, slotRect, new Rect(slotRect.width - 30, 0, 30, 20), this.input,
-                                () => EventBus.emit("hold_item", item, 1))],
-                            ["x5", new LabelButton("x5", "white", "black", 16, slotRect, new Rect(slotRect.width - 30, 20, 30, 20), this.input,
-                                () => EventBus.emit("hold_item", item, 5))],
-                            ["x15", new LabelButton("x15", "white", "black", 16, slotRect, new Rect(slotRect.width - 30, 40, 30, 20), this.input,
-                                () => EventBus.emit("hold_item", item, 15))]
-                        ]
+                        [1, 5, 15].map((selectAmount, i) => {
+                            return ["x" + selectAmount, new LabelButton("x" + selectAmount, "white", "black", 16, slotRect, new Rect(slotRect.width - 30, 20 * i + 20, 30, 20), this.input,
+                                () => {
+                                    if (selectAmount > amount) return;
+                                    if (this.ui.getHolding() !== null && (this.ui.getHolding()!.amount + selectAmount) > amount) return;
+                                    this.ui.setHolding(item, selectAmount, { width: 64, height: 64 }, true);
+                                    this.input.clicked = false;
+                                })]
+                        })
                     )
                 })
                 c++;
@@ -98,14 +123,16 @@ export class OreInventory extends UIInventory {
 
 export class PlateInventory extends UIInventory {
     private plates: { plate: Plate, rect: Rect }[] = [];
-    constructor(input: InputManager, player: Player, sRect: Rect, dRect: Rect, offsetX: number = 0, offsetY: number = 0) {
-        super(input, player, sRect, dRect, offsetX, offsetY);
+    constructor(input: InputManager, player: Player, ui: UIManager, sRect: Rect, dRect: Rect) {
+        super(input, player, ui, sRect, dRect);
 
         EventBus.on("inventory:loaded", () => this.setItems());
         EventBus.on("inventory:updated", () => this.setItems());
     }
 
     draw(ctx: CanvasRenderingContext2D) {
+        ctx.fillStyle = "black";
+        ctx.fillRect(this.dRect.x, this.dRect.y, this.dRect.width, this.dRect.height);
         this.plates.forEach(({ plate, rect }) => {
             ctx.fillStyle = "grey";
             ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
@@ -114,15 +141,21 @@ export class PlateInventory extends UIInventory {
     }
 
     update(dt: number) {
-        this.plates.forEach(({ plate, rect }) => {
-            if (this.input.isMouseOver(rect)) {
-                EventBus.emit("set_tooltip", plate.name);
-                if (this.input.clicked) {
-                    EventBus.emit("hold_item", plate, 0);
-                    this.input.clicked = false;
+        if (this.input.isMouseOver(this.dRect)) {
+            this.plates.forEach(({ plate, rect }) => {
+                if (this.input.isMouseOver(rect)) {
+                    if (this.input.clicked) {
+                        this.ui.setHolding(plate, 0, { width: 128, height: 128 });
+                        this.input.clicked = false;
+                    }
                 }
+            })
+            if (this.input.clicked && this.ui.isHolding()) {
+                this.ui.removeHolding();
+                this.input.clicked = false;
             }
-        })
+        }
+
     }
 
     setItems() {
@@ -130,9 +163,10 @@ export class PlateInventory extends UIInventory {
 
         let c = 0;
         this.player.getInventory("plates").forEach(plate => {
-            this.plates.push({ 
-                plate: plate.item as Plate, 
-                rect: new Rect(this.sRect.x + this.offsetX + (65 * (c % 2)), this.sRect.y + this.offsetY + (65 * Math.floor(c / 2)), 55, 55) });
+            this.plates.push({
+                plate: plate.item as Plate,
+                rect: new Rect(this.dRect.x + (65 * (c % 2)), this.dRect.y + (65 * Math.floor(c / 2)), 55, 55)
+            });
             c++;
         })
     }
@@ -140,8 +174,8 @@ export class PlateInventory extends UIInventory {
 
 export class PiecesInventory extends UIInventory {
     private pieces: { piece: Piece, rect: Rect, amount: number }[] = [];
-    constructor(input: InputManager, player: Player, sRect: Rect, dRect: Rect, offsetX: number = 0, offsetY: number = 0) {
-        super(input, player, sRect, dRect, offsetX, offsetY);
+    constructor(input: InputManager, player: Player, ui: UIManager, sRect: Rect, dRect: Rect) {
+        super(input, player, ui, sRect, dRect);
 
         EventBus.on("inventory:loaded", () => this.setItems());
         EventBus.on("inventory:updated", () => this.setItems());
@@ -162,15 +196,23 @@ export class PiecesInventory extends UIInventory {
     }
 
     update(dt: number) {
-        this.pieces.forEach(({ piece, rect }) => {
-            if (this.input.isMouseOver(rect)) {
-                EventBus.emit("set_tooltip", piece.name);
-                if (this.input.clicked) {
-                    EventBus.emit("hold_item", piece, 0);
-                    this.input.clicked = false;
+        if (this.input.isMouseOver(this.dRect)) {
+            this.pieces.forEach(({ piece, rect }) => {
+                if (this.input.isMouseOver(rect)) {
+                    this.ui.setToolTip(piece.name);
+                    if (this.input.clicked) {
+                        this.ui.setHolding(piece, 0, { width: 128, height: 128 });
+                        this.input.clicked = false;
+                        return;
+                    }
                 }
+            })
+            if (this.input.clicked && this.ui.isHolding()) {
+                this.ui.removeHolding();
+                this.input.clicked = false;
             }
-        })
+        }
+
     }
 
     setItems() {
@@ -178,10 +220,11 @@ export class PiecesInventory extends UIInventory {
 
         let c = 0;
         this.player.getInventory("pieces").forEach(piece => {
-            this.pieces.push({ 
-                piece: piece.item as Piece, 
-                rect: new Rect(this.sRect.x + this.offsetX + (65 * (c % 2)), this.sRect.y + this.offsetY + (65 * Math.floor(c / 2)), 55, 55),
-                amount: piece.amount});
+            this.pieces.push({
+                piece: piece.item as Piece,
+                rect: new Rect(this.dRect.x + (65 * (c % 2)), this.dRect.y + (65 * Math.floor(c / 2)), 55, 55),
+                amount: piece.amount
+            });
             c++;
         })
     }
@@ -189,8 +232,8 @@ export class PiecesInventory extends UIInventory {
 
 export class ToolsInventory extends UIInventory {
     private tools: { tool: Tool, rect: Rect }[] = [];
-    constructor(input: InputManager, player: Player, sRect: Rect, dRect: Rect, offsetX: number = 0, offsetY: number = 0) {
-        super(input, player, sRect, dRect, offsetX, offsetY);
+    constructor(input: InputManager, player: Player, ui: UIManager, sRect: Rect, dRect: Rect) {
+        super(input, player, ui, sRect, dRect);
 
         EventBus.on("inventory:loaded", () => this.setItems());
         EventBus.on("inventory:updated", () => this.setItems());
@@ -221,9 +264,10 @@ export class ToolsInventory extends UIInventory {
 
         let c = 0;
         this.player.getInventory("tools").forEach(tool => {
-            this.tools.push({ 
-                tool: tool.item as Tool, 
-                rect: new Rect(this.sRect.x + this.offsetX + (65 * (c % 2)), this.sRect.y + this.offsetY + (65 * Math.floor(c / 2)), 55, 55) });
+            this.tools.push({
+                tool: tool.item as Tool,
+                rect: new Rect(this.dRect.x + (65 * (c % 2)), this.dRect.y + (65 * Math.floor(c / 2)), 55, 55)
+            });
             c++;
         })
     }

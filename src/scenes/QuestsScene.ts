@@ -2,14 +2,14 @@ import type { InputManager } from "../core/InputManager.js";
 import type Player from "../entities/Player.js";
 import { AssetManager } from "../core/AssetManager.js";
 import { GenericScene } from "./GenericScene.js";
+import type { UIManager } from "../ui/uiManager.js";
 
 export default class QuestsScene extends GenericScene {
 
-    constructor(protected input : InputManager, protected player : Player) {
-        const assetManager = AssetManager.getInstance();
-        const sprite = assetManager.getBackgroundImage("questsBackground")!;
+    constructor(protected input : InputManager, protected player : Player, protected ui: UIManager) {
+        const sprite = AssetManager.getInstance().getBackgroundImage("questsBackground")!;
 
-        super(input, player, sprite);
+        super(input, player, ui, sprite);
     }
 
     draw(ctx : CanvasRenderingContext2D) : void {
